@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SA-MP CEF Mobile SPA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Transparent Game Overlay Container -->
+    <div id="cef-container">
+
+        <!-- Top-Right Player Stats HUD -->
+        <div id="hud-stats" class="hud-box">
+            <div class="stat-row">
+                <span class="stat-label">HP</span>
+                <div class="progress-bar"><div id="hp-fill" class="fill hp" style="width: 100%;"></div></div>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">ARM</span>
+                <div class="progress-bar"><div id="armor-fill" class="fill armor" style="width: 50%;"></div></div>
+            </div>
+            <div class="stat-row money-row">
+                <span id="money-val" class="money-text">$1,250,000</span>
+            </div>
+        </div>
+
+        <!-- Bottom-Right Vehicle Speedometer HUD -->
+        <div id="hud-speedometer" class="hud-box speedo-box">
+            <div class="speedo-dial">
+                <span id="speed-val" class="speed-number">0</span>
+                <span class="speed-unit">KM/H</span>
+            </div>
+        </div>
+
+        <!-- Interactive Dialog / Modal (Login, Register, Confirmation, Inventory) -->
+        <div id="cef-modal" class="modal-backdrop" style="display: none;">
+            <div class="modal-card">
+                <h2 id="modal-title" class="modal-title">Welcome to Roleplay Server</h2>
+                <p id="modal-message" class="modal-message">Please enter your password to authenticate:</p>
+                <input type="password" id="modal-input" class="modal-input" placeholder="Password" />
+                <div class="modal-actions">
+                    <button id="btn-cancel" class="btn btn-secondary" onclick="onDialogAction('cancel')">Cancel</button>
+                    <button id="btn-submit" class="btn btn-primary" onclick="onDialogAction('submit')">Submit</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Load CEF Bridge -->
+    <script src="cef.js"></script>
+    <script>
+        function onDialogAction(action) {
+            const inputVal = document.getElementById('modal-input').value;
+            window.cef.emit('dialog:response', { action: action, input: inputVal });
+            window.cef.ui.hideDialog();
+        }
+
+        // Notify server that web client is loaded
+        window.addEventListener('DOMContentLoaded', () => {
+            window.cef.emit('client:ready', { platform: 'android', agent: navigator.userAgent });
+        });
+    </script>
+</body>
+</html>
