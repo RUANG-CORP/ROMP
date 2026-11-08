@@ -19,12 +19,7 @@ private:
 
 CJavaWrapper *pJavaWrapper = nullptr;
 bool g_bCefInputActive = false;
-
-// Note: In final APK build with libsamp.so, pNetGame is imported from SA-MP
-extern CNetGame *pNetGame;
-#if defined(STANDALONE_CEF_BUILD)
 CNetGame *pNetGame = nullptr;
-#endif
 
 void CJavaWrapper::InitSubsystem(JNIEnv *env, jobject activity) {
     if (!pJavaWrapper && env && activity) {
