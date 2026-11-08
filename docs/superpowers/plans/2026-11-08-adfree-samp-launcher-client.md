@@ -87,11 +87,11 @@ Connecting to any server automatically updates native `/files/SAMP/settings.ini`
   - `CacheVerifier.checkGameData(Context context)` -> `CacheStatus`
   - Validates `texdb/gta3.img`, `data/gta.dat`, `audio/SFX/` to prevent force closes.
 
-- [ ] **Step 1: Write failing cache validator test**
-- [ ] **Step 2: Run test to verify it fails**
-- [ ] **Step 3: Implement `CacheVerifier.java`**
-- [ ] **Step 4: Run test to verify it passes**
-- [ ] **Step 5: Commit**
+- [x] **Step 1: Write failing cache validator test**
+- [x] **Step 2: Run test to verify it fails**
+- [x] **Step 3: Implement `CacheVerifier.java`**
+- [x] **Step 4: Run test to verify it passes**
+- [x] **Step 5: Commit**
 
 ---
 
@@ -103,22 +103,21 @@ Connecting to any server automatically updates native `/files/SAMP/settings.ini`
 - Create: `app/src/main/res/layout/activity_launcher.xml`
 - Create: `app/src/main/res/layout/item_server_card.xml`
 - Create: `app/src/main/res/layout/dialog_add_server.xml`
-- Create: `app/src/main/res/layout/dialog_server_details.xml`
 - Test: `tests/test_universal_launcher_ui.py`
 
 **Interfaces:**
 - Consumes: `ServerRepository`, `SampQueryClient`, `SettingsManager`, `CacheVerifier`.
 - Produces:
-  - Material 3 Tabbed UI: [FAVORIT] | [INTERNET] | [PENGATURAN].
-  - Floating Action Button (+) to add custom servers.
+  - Tabbed UI: [FAVORIT] | [INTERNET] | [PENGATURAN].
+  - Button (+) to add custom servers.
   - Live query updates on server cards (status badge, online count, ping).
-  - Server detail bottom sheet with "CONNECT" button that launches `GTASA`.
+  - Server card with "CONNECT" button that launches `GTASA`.
 
-- [ ] **Step 1: Write failing UI contract test**
-- [ ] **Step 2: Run test to verify it fails**
-- [ ] **Step 3: Implement layouts, adapter, and `LauncherActivity.java`**
-- [ ] **Step 4: Run test to verify it passes**
-- [ ] **Step 5: Commit**
+- [x] **Step 1: Write failing UI contract test**
+- [x] **Step 2: Run test to verify it fails**
+- [x] **Step 3: Implement layouts, adapter, and `LauncherActivity.java`**
+- [x] **Step 4: Run test to verify it passes**
+- [x] **Step 5: Commit**
 
 ---
 
@@ -126,7 +125,6 @@ Connecting to any server automatically updates native `/files/SAMP/settings.ini`
 
 **Files:**
 - Modify: `app/src/main/AndroidManifest.xml` (configure `LauncherActivity` as primary launcher)
-- Modify: `app/build.gradle` (Material Components, CardView, ViewPager2)
 - Test: `tests/test_universal_e2e.py`
 
 **Interfaces:**
@@ -135,8 +133,8 @@ Connecting to any server automatically updates native `/files/SAMP/settings.ini`
   - Verified, compiled APK containing the complete Universal Launcher.
   - Direct installation and live verification on LDPlayer.
 
-- [ ] **Step 1: Write failing e2e test**
-- [ ] **Step 2: Run test to verify it fails**
-- [ ] **Step 3: Update `AndroidManifest.xml`, compile with `gradlew assembleDebug`, install to LDPlayer**
-- [ ] **Step 4: Run test to verify it passes**
-- [ ] **Step 5: Commit and verify on LDPlayer screen**
+- [x] **Step 1: Write failing e2e test**
+- [x] **Step 2: Run test to verify it fails**
+- [x] **Step 3: Update `AndroidManifest.xml`, compile with `gradlew assembleDebug`, install to LDPlayer**
+- [x] **Step 4: Run test to verify it passes**
+- [x] **Step 5: Commit and verify on LDPlayer screen**
