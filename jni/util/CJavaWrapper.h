@@ -13,6 +13,8 @@ public:
     void CefToggleFocus(bool isInteractive);
     void CefSetVisibility(bool isVisible);
 
+    static void InitSubsystem(JNIEnv *env, jobject activity);
+
 private:
     JavaVM *m_pVM;
     jobject m_activityObj;
@@ -27,5 +29,6 @@ private:
 };
 
 extern CJavaWrapper *pJavaWrapper;
+extern bool g_bCefInputActive;
 
 #endif // CJAVA_WRAPPER_H

@@ -17,9 +17,20 @@ private:
     RakClientInterface *m_pRakClient = nullptr;
 };
 
-extern CNetGame *pNetGame;
 CJavaWrapper *pJavaWrapper = nullptr;
+bool g_bCefInputActive = false;
+
+// Note: In final APK build with libsamp.so, pNetGame is imported from SA-MP
+extern CNetGame *pNetGame;
+#if defined(STANDALONE_CEF_BUILD)
 CNetGame *pNetGame = nullptr;
+#endif
+
+void CJavaWrapper::InitSubsystem(JNIEnv *env, jobject activity) {
+    if (!pJavaWrapper && env && activity) {
+        pJavaWrapper = new CJavaWrapper(env, activity);
+    }
+}
 
 CJavaWrapper::CJavaWrapper(JNIEnv *env, jobject activity) {
     env->GetJavaVM(&m_pVM);
@@ -48,7 +59,13 @@ CJavaWrapper::~CJavaWrapper() {
 JNIEnv* CJavaWrapper::GetEnv() {
     JNIEnv *env = nullptr;
     if (m_pVM) {
-        m_pVM->GetEnv((void**)&env, JNI_VERSION_1_6);
+        jint res = m_pVM->GetEnv((void**)&env, JNI_VERSION_1_6);
+        if (res == JNI_EDETACHED) {
+            // Attach native thread (e.g. RakNet worker thread) to JVM
+            if (m_pVM->AttachCurrentThread(&env, nullptr) != JNI_OK) {
+                return nullptr;
+            }
+        }
     }
     return env;
 }
@@ -84,6 +101,8 @@ void CJavaWrapper::CefEmitClient(const char *eventName, const char *jsonPayload)
 }
 
 void CJavaWrapper::CefToggleFocus(bool isInteractive) {
+    g_bCefInputActive = isInteractive;
+
     JNIEnv *env = GetEnv();
     if (!env || !m_cefManagerClass || !m_midGetInstance || !m_midToggleFocus) return;
 
@@ -103,6 +122,13 @@ void CJavaWrapper::CefSetVisibility(bool isVisible) {
 
     env->CallVoidMethod(instance, m_midSetVisibility, (jboolean)isVisible);
     env->DeleteLocalRef(instance);
+}
+
+// JNI Entry point for native initialization from Java
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_rockstargames_gtasa_core_CefManager_nativeInit(JNIEnv *env, jobject thiz, jobject activity) {
+    CJavaWrapper::InitSubsystem(env, activity);
 }
 
 // JNI Bridge Method implementation called from Java AndroidBridge

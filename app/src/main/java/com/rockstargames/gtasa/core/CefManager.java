@@ -19,22 +19,22 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.webkit.WebViewAssetLoader;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
+import org.json.JSONObject;
 
 /**
  * CefManager - High-Performance Chromium/WebView Overlay Manager for GTA SA-MP / open.mp Mobile.
- *
- * Handles:
- *  1. Transparent hardware-accelerated WebView overlay on top of game GLSurfaceView.
- *  2. Dynamic Touch Routing: Touch Pass-Through (HUD) vs Focus Lock (Dialogs).
- *  3. Injected Javascript Bridge (window.cef.emit / window.cef.on).
- *  4. Asset Loader: Intercepts desktop package:// and http://package/ schemes and serves local APK assets.
- *  5. Anti-Crash Lifecycle: Safe UI-thread execution and window soft input handling.
  */
 public class CefManager {
     private static final String TAG = "CefManager";
     private static volatile CefManager sInstance;
+
+    static {
+        try {
+            System.loadLibrary("samp_cef_mobile");
+        } catch (UnsatisfiedLinkError e) {
+            Log.w(TAG, "samp_cef_mobile native library not found in standalone mode: " + e.getMessage());
+        }
+    }
 
     private Activity mActivity;
     private WebView mWebView;
@@ -42,7 +42,8 @@ public class CefManager {
     private boolean mIsInteractive = false;
     private boolean mIsInitialized = false;
 
-    // Native C++ JNI bridge method
+    // Native C++ JNI bridge methods
+    private native void nativeInit(Activity activity);
     private native void nativeSendCefEvent(String event, String json);
 
     private CefManager() {}
@@ -62,8 +63,14 @@ public class CefManager {
      * Initializes the CEF WebView inside the game activity's root layout.
      */
     public void init(@NonNull final Activity activity, @NonNull final FrameLayout rootLayout) {
-        if (mIsInitialized) return;
+        if (mIsInitialized && mActivity == activity) return;
         this.mActivity = activity;
+
+        try {
+            nativeInit(activity);
+        } catch (UnsatisfiedLinkError e) {
+            Log.w(TAG, "nativeInit unsatisfied: " + e.getMessage());
+        }
 
         activity.runOnUiThread(() -> {
             mAssetLoader = new WebViewAssetLoader.Builder()
@@ -103,8 +110,6 @@ public class CefManager {
                     Uri url = request.getUrl();
                     String urlStr = url.toString();
 
-                    // Desktop samp-cef custom scheme translation:
-                    // "package://cef/index.html" or "http://package/index.html" -> virtual asset domain
                     if (urlStr.startsWith("package://") || urlStr.startsWith("http://package/")) {
                         String cleanPath = urlStr.replaceFirst("^https?://package/?|^package://?", "");
                         Uri rewrittenUri = Uri.parse("https://appassets.androidplatform.net/assets/" + cleanPath);
@@ -160,11 +165,11 @@ public class CefManager {
         if (mActivity == null) return;
         mActivity.runOnUiThread(() -> {
             if (mWebView != null) {
-                // Escape payload for evaluateJavascript
-                String escapedPayload = jsonPayload != null ? jsonPayload : "{}";
+                String safePayload = (jsonPayload != null && !jsonPayload.isEmpty()) ? jsonPayload : "{}";
+                // Pass raw json as properly escaped string parameter to window.cef._trigger
                 String script = String.format("if (window.cef && window.cef._trigger) { window.cef._trigger('%s', %s); }",
                         escapeJsString(eventName),
-                        escapedPayload);
+                        JSONObject.quote(safePayload));
                 mWebView.evaluateJavascript(script, null);
             }
         });
@@ -190,11 +195,15 @@ public class CefManager {
         });
     }
 
-    /**
-     * Configures touch routing:
-     *   false -> Pass-Through: webview does not capture touch, touches fall to GLSurfaceView.
-     *   true  -> Interactive: webview captures touches for form fields, buttons, scroll.
-     */
+    public void onDestroy() {
+        if (mWebView != null) {
+            mWebView.destroy();
+            mWebView = null;
+        }
+        mIsInitialized = false;
+        mActivity = null;
+    }
+
     private void setTouchState(boolean interactive) {
         mIsInteractive = interactive;
         if (mWebView == null) return;
@@ -203,13 +212,12 @@ public class CefManager {
             mWebView.setClickable(true);
             mWebView.setFocusable(true);
             mWebView.setFocusableInTouchMode(true);
-            mWebView.setOnTouchListener(null); // Allow default touch processing inside WebView
+            mWebView.setOnTouchListener(null);
             mWebView.requestFocus();
         } else {
             mWebView.setClickable(false);
             mWebView.setFocusable(false);
             mWebView.setFocusableInTouchMode(false);
-            // Returning false passes touch event down the Android view hierarchy to game GLSurfaceView
             mWebView.setOnTouchListener((v, event) -> false);
             mWebView.clearFocus();
         }
@@ -220,16 +228,13 @@ public class CefManager {
         return input.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n");
     }
 
-    /**
-     * Injected Javascript Interface class
-     */
     public class CefAndroidBridge {
         @JavascriptInterface
         public void sendToServer(String event, String json) {
             try {
                 nativeSendCefEvent(event, json);
             } catch (UnsatisfiedLinkError e) {
-                Log.e(TAG, "nativeSendCefEvent native library not yet linked or found: " + e.getMessage());
+                Log.e(TAG, "nativeSendCefEvent native library not linked: " + e.getMessage());
             } catch (Exception e) {
                 Log.e(TAG, "Error in sendToServer: " + e.getMessage());
             }

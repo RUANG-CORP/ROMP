@@ -46,3 +46,4 @@ global.window.cef._trigger("system:message", "Welcome to SA-MP CEF Mobile!");
 assert.strictEqual(rawStringReceived, "Welcome to SA-MP CEF Mobile!");
 
 console.log("All CEF bridge unit tests passed!");
+

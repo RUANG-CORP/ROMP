@@ -15,14 +15,7 @@
      */
     root.cef.emit = function(event) {
         var args = Array.prototype.slice.call(arguments, 1);
-        var payload;
-        if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
-            payload = JSON.stringify(args[0]);
-        } else if (args.length === 1 && typeof args[0] === 'string') {
-            payload = JSON.stringify(args[0]);
-        } else {
-            payload = JSON.stringify(args);
-        }
+        var payload = JSON.stringify(args.length === 1 ? args[0] : args);
 
         if (typeof AndroidBridge !== 'undefined' && AndroidBridge.sendToServer) {
             AndroidBridge.sendToServer(event, payload);
@@ -125,3 +118,4 @@
         });
     }
 })();
+

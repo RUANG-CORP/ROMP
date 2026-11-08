@@ -110,28 +110,28 @@ stock CEF_SetVisibility(playerid, bool:visible) {
  * Packet handler for incoming client events (CEF_SUBID_EMIT_SERVER)
  */
 IPacket:CEF_PACKET_ID(playerid, BitStream:bs) {
+    // Skip 8-bit Packet ID (215) so read pointer points to sub-ID
+    BS_IgnoreBits(bs, 8);
+
     new subid;
-    BS_ReadUint8(bs, subid); // Read sub-ID
+    BS_ReadUint8(bs, subid);
     
     if (subid == CEF_SUBID_EMIT_SERVER) {
         new event[CEF_MAX_EVENT_NAME], json[CEF_MAX_PAYLOAD_SIZE];
         new evLen = 0, jsonLen = 0;
         
         BS_ReadUint16(bs, evLen);
-        if (evLen > sizeof(event) - 1) evLen = sizeof(event) - 1;
+        if (evLen >= sizeof(event)) return 0; // Reject malformed/oversized packet to protect BitStream sync
         BS_ReadString(bs, event, evLen);
         event[evLen] = '\0';
         
         BS_ReadUint16(bs, jsonLen);
-        if (jsonLen > sizeof(json) - 1) jsonLen = sizeof(json) - 1;
+        if (jsonLen >= sizeof(json)) return 0;
         BS_ReadString(bs, json, jsonLen);
         json[jsonLen] = '\0';
         
-        #if defined OnCefEvent
-            return OnCefEvent(playerid, event, json);
-        #else
-            return 1;
-        #endif
+        // Use CallLocalFunction so gamemodes without OnCefEvent won't fail compilation
+        return CallLocalFunction("OnCefEvent", "iss", playerid, event, json);
     }
     return 1;
 }

@@ -27,3 +27,4 @@ target_link_libraries(
     samp_cef_mobile
     ${log-lib}
 )
+

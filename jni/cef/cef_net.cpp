@@ -13,18 +13,17 @@ void ProcessCefPacket(const unsigned char *data, size_t length) {
 
     switch (subId) {
         case CEF_SUBID_LOAD_URL: {
-            if (offset + sizeof(uint32_t) > length) return;
+            if (length - offset < sizeof(uint32_t)) return;
             uint32_t urlLen = 0;
             memcpy(&urlLen, &data[offset], sizeof(uint32_t));
             offset += sizeof(uint32_t);
 
-            if (offset + urlLen + sizeof(uint8_t) > length) return;
+            // Safe subtraction prevents 32-bit integer overflow wrap-around
+            if (urlLen > CEF_MAX_URL_LEN || (length - offset - sizeof(uint8_t)) < urlLen) return;
             
-            // Protect buffer from overflow
             char url[CEF_MAX_URL_LEN + 1] = { 0 };
-            size_t copyLen = std::min((size_t)urlLen, (size_t)CEF_MAX_URL_LEN);
-            memcpy(url, &data[offset], copyLen);
-            url[copyLen] = '\0';
+            memcpy(url, &data[offset], urlLen);
+            url[urlLen] = '\0';
             offset += urlLen;
 
             uint8_t isFocused = 0;
@@ -35,34 +34,32 @@ void ProcessCefPacket(const unsigned char *data, size_t length) {
         }
 
         case CEF_SUBID_EMIT_CLIENT: {
-            if (offset + sizeof(uint16_t) > length) return;
+            if (length - offset < sizeof(uint16_t)) return;
             uint16_t evLen = 0;
             memcpy(&evLen, &data[offset], sizeof(uint16_t));
             offset += sizeof(uint16_t);
 
-            if (offset + evLen + sizeof(uint16_t) > length) return;
+            if (evLen > CEF_MAX_EVENT_LEN || (length - offset - sizeof(uint16_t)) < evLen) return;
             char eventName[CEF_MAX_EVENT_LEN + 1] = { 0 };
-            size_t copyEvLen = std::min((size_t)evLen, (size_t)CEF_MAX_EVENT_LEN);
-            memcpy(eventName, &data[offset], copyEvLen);
-            eventName[copyEvLen] = '\0';
+            memcpy(eventName, &data[offset], evLen);
+            eventName[evLen] = '\0';
             offset += evLen;
 
             uint16_t dataLen = 0;
             memcpy(&dataLen, &data[offset], sizeof(uint16_t));
             offset += sizeof(uint16_t);
 
-            if (offset + dataLen > length) return;
+            if (dataLen > CEF_MAX_DATA_LEN || (length - offset) < dataLen) return;
             char jsonPayload[CEF_MAX_DATA_LEN + 1] = { 0 };
-            size_t copyDataLen = std::min((size_t)dataLen, (size_t)CEF_MAX_DATA_LEN);
-            memcpy(jsonPayload, &data[offset], copyDataLen);
-            jsonPayload[copyDataLen] = '\0';
+            memcpy(jsonPayload, &data[offset], dataLen);
+            jsonPayload[dataLen] = '\0';
 
             pJavaWrapper->CefEmitClient(eventName, jsonPayload);
             break;
         }
 
         case CEF_SUBID_TOGGLE_FOCUS: {
-            if (offset + sizeof(uint8_t) > length) return;
+            if (length - offset < sizeof(uint8_t)) return;
             uint8_t isInteractive = 0;
             memcpy(&isInteractive, &data[offset], sizeof(uint8_t));
 
@@ -71,7 +68,7 @@ void ProcessCefPacket(const unsigned char *data, size_t length) {
         }
 
         case CEF_SUBID_SET_VISIBILITY: {
-            if (offset + sizeof(uint8_t) > length) return;
+            if (length - offset < sizeof(uint8_t)) return;
             uint8_t isVisible = 0;
             memcpy(&isVisible, &data[offset], sizeof(uint8_t));
 
