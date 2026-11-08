@@ -4,4 +4,5 @@ build/
 *.iml
 .idea/
 local.properties
-
+app/.cxx/
+app/build/

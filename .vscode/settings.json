@@ -1,4 +1,4 @@
 {
     "cmake.sourceDirectory": "D:/Valleta/ROMP/jni",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "automatic"
 }
