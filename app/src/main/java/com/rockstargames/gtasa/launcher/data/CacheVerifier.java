@@ -52,15 +52,12 @@ public class CacheVerifier {
         for (String relativePath : ESSENTIAL_FILES) {
             File checkFile = new File(filesDir, relativePath);
             if (!checkFile.exists()) {
-                missing.append_missing(missing, relativePath);
+                missing.add(relativePath);
             }
         }
 
         boolean isComplete = missing.isEmpty();
         return new CacheStatus(isComplete, missing, filesDir);
     }
-
-    private static void append_missing(List<String> list, String file) {
-        list.add(file);
-    }
 }
+

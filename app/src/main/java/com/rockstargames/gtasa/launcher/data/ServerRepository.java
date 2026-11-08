@@ -83,3 +83,4 @@ public class ServerRepository {
         mPrefs.edit().putString(KEY_FAVORITES, arr.toString()).apply();
     }
 }
+

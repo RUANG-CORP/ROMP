@@ -118,7 +118,7 @@ public class ServerAdapter extends BaseAdapter {
         if (info != null && info.isOnline()) {
             holder.dotStatus.setBackgroundColor(Color.parseColor("#10B981")); // Green
             holder.tvName.setText(info.getHostname());
-            holder.tvPing.setText(info.getPing() + "ms");
+            holder.tvPing.setText(info.getPingMs() + "ms");
             holder.tvPlayers.setText(info.getPlayers() + " / " + info.getMaxPlayers());
         } else {
             holder.dotStatus.setBackgroundColor(Color.parseColor("#EF4444")); // Red
@@ -137,3 +137,4 @@ public class ServerAdapter extends BaseAdapter {
         Button btnConnect;
     }
 }
+

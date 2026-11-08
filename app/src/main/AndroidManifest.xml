@@ -10,24 +10,30 @@
         android:allowBackup="true"
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="true"
-        android:label="GTA:SA Mobile"
+        android:label="SA-MP Mobile"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
 
-        <!-- Main Game Activity -->
+        <!-- Universal Launcher Activity (Entry Point) -->
         <activity
-            android:name="com.rockstargames.gtasa.GTASA"
+            android:name="com.rockstargames.gtasa.launcher.ui.LauncherActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|smallestScreenSize"
             android:exported="true"
-            android:screenOrientation="sensorLandscape"
-            android:windowSoftInputMode="adjustNothing">
+            android:screenOrientation="sensorLandscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- Main Game Activity (CEF Overlay + Native Client) -->
+        <activity
+            android:name="com.rockstargames.gtasa.GTASA"
+            android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|smallestScreenSize"
+            android:exported="true"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustNothing" />
+
     </application>
 
 </manifest>
-

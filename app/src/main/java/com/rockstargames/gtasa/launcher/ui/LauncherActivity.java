@@ -15,7 +15,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import android.app.Activity;
 
 import com.rockstargames.gtasa.GTASA;
 import com.rockstargames.gtasa.R;
@@ -35,7 +35,7 @@ import java.util.List;
  * - Dynamic settings synchronization to native settings.ini
  * - 100% Ad-Free experience
  */
-public class LauncherActivity extends AppCompatActivity {
+public class LauncherActivity extends Activity {
 
     private ServerRepository mRepo;
     private SettingsManager mSettings;
