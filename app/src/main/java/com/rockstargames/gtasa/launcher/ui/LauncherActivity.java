@@ -10,6 +10,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -19,6 +20,7 @@ import android.app.Activity;
 
 import com.rockstargames.gtasa.GTASA;
 import com.rockstargames.gtasa.R;
+import com.rockstargames.gtasa.launcher.data.CacheDownloader;
 import com.rockstargames.gtasa.launcher.data.CacheVerifier;
 import com.rockstargames.gtasa.launcher.data.ServerItem;
 import com.rockstargames.gtasa.launcher.data.ServerRepository;
@@ -52,6 +54,8 @@ public class LauncherActivity extends Activity {
     private EditText mEtNickname;
     private Spinner mSpinnerFps;
     private TextView mTvCacheStatus;
+    private Button mBtnDownloadCache;
+    private ProgressBar mPbCacheDownload;
     private Button mBtnSaveSettings;
 
     private boolean mCurrentIsFavorites = true;
@@ -82,7 +86,11 @@ public class LauncherActivity extends Activity {
         mEtNickname = findViewById(R.id.et_nickname);
         mSpinnerFps = findViewById(R.id.spinner_fps);
         mTvCacheStatus = findViewById(R.id.tv_cache_status);
+        mBtnDownloadCache = findViewById(R.id.btn_download_cache);
+        mPbCacheDownload = findViewById(R.id.pb_cache_download);
         mBtnSaveSettings = findViewById(R.id.btn_save_settings);
+
+        mBtnDownloadCache.setOnClickListener(v -> startCacheDownload());
 
         mBtnAddServer.setOnClickListener(v -> showAddServerDialog());
     }
@@ -235,10 +243,60 @@ public class LauncherActivity extends Activity {
         if (status.isComplete()) {
             mTvCacheStatus.setText("Status: Lengkap (Game siap dimainkan)\nLokasi: " + status.getBaseDir().getAbsolutePath());
             mTvCacheStatus.setTextColor(Color.parseColor("#10B981"));
+            mBtnDownloadCache.setText("GAME DATA LENGKAP (VERIFIKASI ULANG)");
+            mBtnDownloadCache.setBackgroundColor(Color.parseColor("#334155"));
         } else {
             mTvCacheStatus.setText("Status: Cache belum lengkap\n" + status.getMissingSummary() + "\nLokasi target: " + status.getBaseDir().getAbsolutePath());
             mTvCacheStatus.setTextColor(Color.parseColor("#F59E0B"));
+            mBtnDownloadCache.setText("DOWNLOAD GAME DATA (AUTO INSTALL)");
+            mBtnDownloadCache.setBackgroundColor(Color.parseColor("#10B981"));
         }
+    }
+
+    private void startCacheDownload() {
+        if (CacheDownloader.isDownloading()) {
+            Toast.makeText(this, "Pengunduhan sedang berjalan...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        mPbCacheDownload.setVisibility(View.VISIBLE);
+        mPbCacheDownload.setProgress(0);
+        mBtnDownloadCache.setEnabled(false);
+        mBtnDownloadCache.setText("Mengunduh...");
+
+        // CDN endpoint for GTA SA clean data cache
+        String cacheUrl = "https://github.com/Valleta-Network/assets/releases/download/v1.0/gtasa_cache_lite.zip";
+
+        CacheDownloader.downloadAndExtract(cacheUrl, getExternalFilesDir(null), new CacheDownloader.DownloadCallback() {
+            @Override
+            public void onProgress(int percent, long downloadedBytes, long totalBytes) {
+                mPbCacheDownload.setProgress(percent);
+                long mbDownloaded = downloadedBytes / (1024 * 1024);
+                long mbTotal = totalBytes / (1024 * 1024);
+                mTvCacheStatus.setText("Mengunduh Cache: " + percent + "% (" + mbDownloaded + " MB / " + mbTotal + " MB)");
+            }
+
+            @Override
+            public void onExtracting(String entryName) {
+                mTvCacheStatus.setText("Mengekstrak: " + entryName);
+            }
+
+            @Override
+            public void onComplete(java.io.File destinationDir) {
+                mPbCacheDownload.setVisibility(View.GONE);
+                mBtnDownloadCache.setEnabled(true);
+                Toast.makeText(LauncherActivity.this, "Game data berhasil diunduh dan dipasang!", Toast.LENGTH_LONG).show();
+                refreshSettingsValues();
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                mPbCacheDownload.setVisibility(View.GONE);
+                mBtnDownloadCache.setEnabled(true);
+                Toast.makeText(LauncherActivity.this, "Gagal mengunduh: " + errorMessage, Toast.LENGTH_LONG).show();
+                refreshSettingsValues();
+            }
+        });
     }
 
     private void saveSettingsValues() {
@@ -278,10 +336,24 @@ public class LauncherActivity extends Activity {
         // Check cache status
         CacheVerifier.CacheStatus cacheStatus = CacheVerifier.checkGameData(this);
         if (!cacheStatus.isComplete()) {
-            Toast.makeText(this, "Peringatan: Data game GTA SA belum lengkap di Android/data", Toast.LENGTH_SHORT).show();
+            AlertDialog.Builder alert = new AlertDialog.Builder(this);
+            alert.setTitle("Game Data Belum Lengkap");
+            alert.setMessage("File data GTA SA belum lengkap di penyimpanan.\n\nUnduh file data secara otomatis sekarang?");
+            alert.setPositiveButton("Download Sekarang", (dialog, which) -> {
+                showSettingsTab();
+                startCacheDownload();
+            });
+            alert.setNegativeButton("Lanjut Main", (dialog, which) -> {
+                startGameActivity(server, nickname);
+            });
+            alert.show();
+            return;
         }
 
-        // Launch Game Activity
+        startGameActivity(server, nickname);
+    }
+
+    private void startGameActivity(ServerItem server, String nickname) {
         Intent intent = new Intent(this, GTASA.class);
         intent.putExtra("server_ip", server.getIp());
         intent.putExtra("server_port", server.getPort());

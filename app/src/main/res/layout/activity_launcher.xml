@@ -152,7 +152,25 @@
                     android:text="Memeriksa data GTA SA..."
                     android:textColor="#38BDF8"
                     android:textSize="12sp"
-                    android:layout_marginBottom="24dp" />
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/btn_download_cache"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:text="DOWNLOAD GAME DATA (AUTO INSTALL)"
+                    android:textColor="#FFFFFF"
+                    android:background="#10B981"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="10dp" />
+
+                <ProgressBar
+                    android:id="@+id/pb_cache_download"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="14dp"
+                    android:visibility="gone"
+                    android:layout_marginBottom="20dp" />
 
                 <Button
                     android:id="@+id/btn_save_settings"

@@ -1,0 +1,25 @@
+feature,area,priority,original,clone,notes
+Favorit server list with add/delete/persistence,launcher_servers,must,yes,yes,Stored in SharedPreferences JSON
+Internet and hosted public masterlist directory,launcher_servers,must,yes,yes,Pre-seeded with active OMP/SAMP servers
+Live UDP query for ping players and hostname,launcher_servers,must,yes,yes,Non-blocking worker thread UDP query (opcode i)
+Direct Connect add server dialog (IP Port Name),launcher_servers,must,yes,yes,Validates IP and port range (1-65535)
+Server search and filtering by query/ping,launcher_servers,should,yes,no,Can filter list dynamically by text
+Server detailed inspect sheet (rules gamemode players),launcher_servers,should,yes,no,UDP opcode r and c
+Player nickname setting with character validation,launcher_settings,must,yes,yes,Regex validated (3-20 chars alphanumeric and brackets)
+FPS Limit configuration (30 60 90 120 FPS),launcher_settings,must,yes,yes,Saved to preferences and settings.ini
+Fast chat and CEF overlay toggles,launcher_settings,should,yes,yes,Synchronized to SAMP settings.ini
+Voice chat audio configuration toggle,launcher_settings,could,yes,no,Voice chat native plugin hook
+Auto sync configuration to native settings.ini,launcher_settings,must,yes,yes,Written to /files/SAMP/settings.ini on connect
+Game cache integrity verification (texdb and data),cache_management,must,yes,yes,Verifies texdb/gta3.img and data/gta.dat
+In-app game data downloader and zip unpacker,cache_management,should,yes,yes,Streaming chunked downloader + zip unpacker with live UI progress
+Hardware accelerated transparent CEF WebView overlay,in_game_cef,must,yes,yes,Layered over GLSurfaceView with package asset loader
+RakNet Custom Packet ID 215 protocol handler,in_game_cef,must,yes,yes,Sub-IDs 1 to 5 for URL load emit focus and visibility
+Dynamic touch pass-through for CEF focus,in_game_cef,must,yes,yes,Toggles between game pad input and web interaction
+CEF HUD overlay (HP Armor Money Speedometer),in_game_cef,must,yes,yes,SPA responsive HTML5 CSS3 Web components
+CEF Server Dialogs and Web GUI support,in_game_cef,must,yes,yes,Dialog popup for server interactive menus and inventories
+Virtual soft keyboard with adjustNothing EGL safety,in_game_cef,must,yes,yes,Prevents window resize EGL driver crash
+Server-side Pawn include (cef_mobile.inc),in_game_cef,must,yes,yes,cef_create cef_emit cef_toggle_focus etc
+Banner ads in launcher UI,monetization_ads,skip,yes,skip,Original ReSA has AdMob banner; clone is 100% ad-free
+Interstitial pop-up ads before connecting,monetization_ads,skip,yes,skip,Original ReSA displays full screen ads on connect; clone is 100% ad-free
+Ad tracking and analytics telemetry SDKs,monetization_ads,skip,yes,skip,Stripped for privacy zero bloat and instant boot
+
