@@ -51,10 +51,10 @@ public class GTASA extends Activity {
     private Button mBtnCloseScoreboard;
 
     // Server params
-    private String mServerIp = "185.239.237.91";
+    private String mServerIp = "18.142.244.146";
     private int mServerPort = 7777;
     private String mPlayerName = "Player_Valleta";
-    private String mServerName = "Life of Player";
+    private String mServerName = "RUANG ROLEPLAY";
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private Runnable mPingRunnable;

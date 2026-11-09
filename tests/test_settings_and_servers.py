@@ -56,22 +56,22 @@ class TestSettingsAndServerModels(unittest.TestCase):
         self.assertIn("cef_overlay = 1", ini)
 
     def test_client_settings_json_generation(self):
-        raw = generate_client_settings_json("Valleta_Dev", "185.239.237.91", 7777, "Life of Player")
+        raw = generate_client_settings_json("Valleta_Dev", "18.142.244.146", 7777, "RUANG ROLEPLAY")
         data = json.loads(raw)
         self.assertEqual(data["nick_name"], "Valleta_Dev")
-        self.assertEqual(data["server_ip"], "185.239.237.91")
+        self.assertEqual(data["server_ip"], "18.142.244.146")
         self.assertEqual(data["server_port"], 7777)
-        self.assertEqual(data["last_server_name"], "Life of Player")
+        self.assertEqual(data["last_server_name"], "RUANG ROLEPLAY")
         self.assertFalse(data["offline_mode"])
         self.assertEqual(data["fps_limit"], 90)
 
     def test_resa_connect_uri_parsing(self):
-        uri = generate_resa_connect_uri("185.239.237.91", 7777)
+        uri = generate_resa_connect_uri("18.142.244.146", 7777)
         parsed = urlparse(uri)
         self.assertEqual(parsed.scheme, "resa")
         self.assertEqual(parsed.netloc, "connect")
         qs = parse_qs(parsed.query)
-        self.assertEqual(qs["ip"][0], "185.239.237.91")
+        self.assertEqual(qs["ip"][0], "18.142.244.146")
         self.assertEqual(qs["port"][0], "7777")
 
     def test_java_files_exist(self):

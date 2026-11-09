@@ -10,6 +10,8 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,6 +23,16 @@ public class SampQueryClient {
     private static final String TAG = "SampQueryClient";
     private static final ExecutorService sExecutor = Executors.newFixedThreadPool(4);
     private static final Handler sMainHandler = new Handler(Looper.getMainLooper());
+
+    private static class CachedInfo {
+        final ServerInfo info;
+        final long timestamp;
+        CachedInfo(ServerInfo info, long timestamp) {
+            this.info = info;
+            this.timestamp = timestamp;
+        }
+    }
+    private static final Map<String, CachedInfo> sCache = new ConcurrentHashMap<>();
 
     public interface QueryCallback {
         void onResult(ServerInfo info);
@@ -154,69 +166,81 @@ public class SampQueryClient {
     }
 
     private static ServerInfo executeQuery(String ip, int port) {
-        long startTime = System.currentTimeMillis();
-        try (DatagramSocket socket = new DatagramSocket()) {
-            socket.setSoTimeout(2000); // 2 seconds timeout
-
-            InetAddress address = InetAddress.getByName(ip);
-            byte[] ipOctets = address.getAddress();
-
-            // Build SA-MP query packet: 'SAMP' (4) + IP (4) + Port (2, little-endian) + Opcode 'i' (1)
-            ByteBuffer buffer = ByteBuffer.allocate(11);
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            buffer.put("SAMP".getBytes(StandardCharsets.US_ASCII));
-            buffer.put(ipOctets);
-            buffer.putShort((short) port);
-            buffer.put((byte) 'i');
-
-            byte[] requestBytes = buffer.array();
-            DatagramPacket requestPacket = new DatagramPacket(requestBytes, requestBytes.length, address, port);
-            socket.send(requestPacket);
-
-            byte[] receiveBuffer = new byte[2048];
-            DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
-            socket.receive(receivePacket);
-
-            long pingMs = System.currentTimeMillis() - startTime;
-
-            byte[] data = receivePacket.getData();
-            int length = receivePacket.getLength();
-
-            if (length < 11) {
-                return ServerInfo.offline(ip, port);
-            }
-
-            ByteBuffer inBuf = ByteBuffer.wrap(data, 0, length);
-            inBuf.order(ByteOrder.LITTLE_ENDIAN);
-
-            // Skip header (11 bytes)
-            inBuf.position(11);
-
-            boolean passworded = inBuf.get() != 0;
-            int players = inBuf.getShort() & 0xFFFF;
-            int maxPlayers = inBuf.getShort() & 0xFFFF;
-
-            int hostnameLen = inBuf.getInt();
-            if (hostnameLen < 0 || hostnameLen > 256 || inBuf.remaining() < hostnameLen) {
-                return ServerInfo.offline(ip, port);
-            }
-            byte[] hostnameBytes = new byte[hostnameLen];
-            inBuf.get(hostnameBytes);
-            String hostname = new String(hostnameBytes, StandardCharsets.ISO_8859_1);
-
-            int gamemodeLen = inBuf.getInt();
-            String gamemode = "Roleplay";
-            if (gamemodeLen >= 0 && gamemodeLen <= 128 && inBuf.remaining() >= gamemodeLen) {
-                byte[] gamemodeBytes = new byte[gamemodeLen];
-                inBuf.get(gamemodeBytes);
-                gamemode = new String(gamemodeBytes, StandardCharsets.ISO_8859_1);
-            }
-
-            return new ServerInfo(true, ip, port, hostname, gamemode, players, maxPlayers, (int) pingMs, passworded);
-        } catch (Exception e) {
-            Log.d(TAG, "Query failed for " + ip + ":" + port + " (" + e.getMessage() + ")");
-            return ServerInfo.offline(ip, port);
+        String key = ip + ":" + port;
+        CachedInfo cached = sCache.get(key);
+        if (cached != null && (System.currentTimeMillis() - cached.timestamp < 3000) && cached.info.isOnline()) {
+            return cached.info;
         }
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            long startTime = System.currentTimeMillis();
+            try (DatagramSocket socket = new DatagramSocket()) {
+                socket.setSoTimeout(1500); // 1.5 seconds
+
+                InetAddress address = InetAddress.getByName(ip);
+                byte[] ipOctets = address.getAddress();
+
+                // Build SA-MP query packet: 'SAMP' (4) + IP (4) + Port (2, little-endian) + Opcode 'i' (1)
+                ByteBuffer buffer = ByteBuffer.allocate(11);
+                buffer.order(ByteOrder.LITTLE_ENDIAN);
+                buffer.put("SAMP".getBytes(StandardCharsets.US_ASCII));
+                buffer.put(ipOctets);
+                buffer.putShort((short) port);
+                buffer.put((byte) 'i');
+
+                byte[] requestBytes = buffer.array();
+                DatagramPacket requestPacket = new DatagramPacket(requestBytes, requestBytes.length, address, port);
+                socket.send(requestPacket);
+
+                byte[] receiveBuffer = new byte[2048];
+                DatagramPacket receivePacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
+                socket.receive(receivePacket);
+
+                long pingMs = System.currentTimeMillis() - startTime;
+
+                byte[] data = receivePacket.getData();
+                int length = receivePacket.getLength();
+
+                if (length < 11) {
+                    continue;
+                }
+
+                ByteBuffer inBuf = ByteBuffer.wrap(data, 0, length);
+                inBuf.order(ByteOrder.LITTLE_ENDIAN);
+
+                // Skip header (11 bytes)
+                inBuf.position(11);
+
+                boolean passworded = inBuf.get() != 0;
+                int players = inBuf.getShort() & 0xFFFF;
+                int maxPlayers = inBuf.getShort() & 0xFFFF;
+
+                int hostnameLen = inBuf.getInt();
+                if (hostnameLen < 0 || hostnameLen > 256 || inBuf.remaining() < hostnameLen) {
+                    continue;
+                }
+                byte[] hostnameBytes = new byte[hostnameLen];
+                inBuf.get(hostnameBytes);
+                String hostname = new String(hostnameBytes, StandardCharsets.ISO_8859_1);
+
+                int gamemodeLen = inBuf.getInt();
+                String gamemode = "Roleplay";
+                if (gamemodeLen >= 0 && gamemodeLen <= 128 && inBuf.remaining() >= gamemodeLen) {
+                    byte[] gamemodeBytes = new byte[gamemodeLen];
+                    inBuf.get(gamemodeBytes);
+                    gamemode = new String(gamemodeBytes, StandardCharsets.ISO_8859_1);
+                }
+
+                ServerInfo res = new ServerInfo(true, ip, port, hostname, gamemode, players, maxPlayers, (int) pingMs, passworded);
+                sCache.put(key, new CachedInfo(res, System.currentTimeMillis()));
+                return res;
+            } catch (Exception e) {
+                if (attempt == 0) {
+                    try { Thread.sleep(250); } catch (InterruptedException ignored) {}
+                }
+            }
+        }
+        return ServerInfo.offline(ip, port);
     }
 }
 

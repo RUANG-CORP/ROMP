@@ -382,3 +382,4 @@ public class GameViewportView extends SurfaceView implements SurfaceHolder.Callb
         return super.onTouchEvent(event);
     }
 }
+

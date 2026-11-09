@@ -17,3 +17,4 @@ with open('replica/features.csv', mode='r', encoding='utf-8') as f:
 
 score = (achieved_weight / total_weight) * 100.0 if total_weight > 0 else 0.0
 print(f"Features Parity Score: {score:.1f}% ({achieved_weight:.1f}/{total_weight:.1f} points)")
+

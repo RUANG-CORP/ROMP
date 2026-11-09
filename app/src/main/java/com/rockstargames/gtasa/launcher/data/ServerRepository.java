@@ -24,6 +24,7 @@ public class ServerRepository {
         String jsonStr = mPrefs.getString(KEY_FAVORITES, null);
         if (jsonStr == null || jsonStr.isEmpty()) {
             // Default seed servers
+            list.add(new ServerItem("18.142.244.146", 7777, "RUANG ROLEPLAY (GTA SA)"));
             list.add(new ServerItem("127.0.0.1", 7777, "Localhost Development Server"));
             list.add(new ServerItem("51.79.162.246", 7777, "Indonesian Roleplay Server"));
             saveFavorites(list);
@@ -39,6 +40,25 @@ public class ServerRepository {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        // Ensure 18.142.244.146:7777 is present and prioritized at index 0
+        boolean hasTarget = false;
+        for (int i = 0; i < list.size(); i++) {
+            if ("18.142.244.146".equals(list.get(i).getIp()) && list.get(i).getPort() == 7777) {
+                if (i != 0) {
+                    ServerItem item = list.remove(i);
+                    list.add(0, item);
+                    saveFavorites(list);
+                }
+                hasTarget = true;
+                break;
+            }
+        }
+        if (!hasTarget) {
+            list.add(0, new ServerItem("18.142.244.146", 7777, "RUANG ROLEPLAY (GTA SA)"));
+            saveFavorites(list);
+        }
+
         return list;
     }
 
@@ -68,6 +88,7 @@ public class ServerRepository {
     public List<ServerItem> getPublicServers() {
         // Curated directory of active servers
         List<ServerItem> list = new ArrayList<>();
+        list.add(new ServerItem("18.142.244.146", 7777, "RUANG ROLEPLAY (GTA SA)"));
         list.add(new ServerItem("127.0.0.1", 7777, "Localhost Test Server"));
         list.add(new ServerItem("51.79.162.246", 7777, "Ruang Roleplay Indonesia"));
         list.add(new ServerItem("178.32.74.83", 7777, "open.mp Community Server"));

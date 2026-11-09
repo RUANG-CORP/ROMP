@@ -340,29 +340,31 @@ public class LauncherActivity extends Activity {
 
     private void setupDefaultServer() {
         List<ServerItem> list = mRepo.getFavorites();
-        if (!list.isEmpty()) {
-            selectServerForPlay(list.get(0));
-            updateServerPane(list.get(0));
-        } else {
-            List<ServerItem> pub = mRepo.getPublicServers();
-            if (!pub.isEmpty()) {
-                selectServerForPlay(pub.get(0));
-                updateServerPane(pub.get(0));
-            }
-        }
+        ServerItem defaultServer = !list.isEmpty() ? list.get(0) : new ServerItem("18.142.244.146", 7777, "RUANG ROLEPLAY (GTA SA)");
+        selectServerForPlay(defaultServer);
+        updateServerPane(defaultServer);
     }
 
     private void selectServerForPlay(ServerItem server) {
         if (server == null) return;
         mSelectedServer = server;
+        String initialName = server.getName();
+        if (initialName == null || initialName.isEmpty() || initialName.equals(server.getAddress())) {
+            if ("18.142.244.146".equals(server.getIp())) {
+                initialName = "RUANG ROLEPLAY (GTA SA)";
+            } else {
+                initialName = server.getAddress();
+            }
+        }
         if (mTvHomeSelectedServerName != null) {
-            mTvHomeSelectedServerName.setText(server.getName() != null ? server.getName() : server.getAddress());
+            mTvHomeSelectedServerName.setText(initialName);
         }
         if (mTvHomeSelectedServerAddress != null) {
-            mTvHomeSelectedServerAddress.setText(server.getAddress() + " · " + (server.getName() != null ? server.getName() : "SA-MP Server"));
+            mTvHomeSelectedServerAddress.setText(server.getAddress() + " · " + initialName);
         }
         if (mTvHomeSelectedServerStats != null) {
             mTvHomeSelectedServerStats.setText("Memeriksa status server...");
+            mTvHomeSelectedServerStats.setTextColor(Color.parseColor("#94A3B8"));
         }
 
         SampQueryClient.queryServer(server.getIp(), server.getPort(), info -> {
