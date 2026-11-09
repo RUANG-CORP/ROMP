@@ -948,8 +948,13 @@ public class LauncherActivity extends Activity {
     }
 
     private void launchOfflineGame() {
-        Intent intent = new Intent(this, GTASA.class);
-        startActivity(intent);
+        if (mSelectedServer != null) {
+            startGameActivity(mSelectedServer, mSettings.getNickname());
+        } else {
+            Intent intent = new Intent(this, GTASA.class);
+            intent.putExtra("player_name", mSettings.getNickname());
+            startActivity(intent);
+        }
     }
 
     private void launchGameWithServer(ServerItem server) {
@@ -983,13 +988,42 @@ public class LauncherActivity extends Activity {
                 startCacheDownload();
             });
             alert.setNegativeButton("Lanjut Main", (dialog, which) -> {
-                startGameActivity(server, nickname);
+                handleConnectionEngineChoice(server, nickname);
             });
             alert.show();
             return;
         }
 
-        startGameActivity(server, nickname);
+        handleConnectionEngineChoice(server, nickname);
+    }
+
+    private void handleConnectionEngineChoice(ServerItem server, String nickname) {
+        if (SettingsManager.isResaInstalled(this)) {
+            showConnectionMethodDialog(server, nickname);
+        } else {
+            startGameActivity(server, nickname);
+        }
+    }
+
+    private void showConnectionMethodDialog(ServerItem server, String nickname) {
+        String serverName = server.getName() != null ? server.getName() : server.getAddress();
+        CharSequence[] options = new CharSequence[] {
+            "🚀 Mesin 3D ReSA:MP (Gameplay 3D Penuh)\n   Menjalankan game GTA San Andreas 3D langsung di server",
+            "🎮 ROMP Client Mandiri (CEF Mobile)\n   Menjalankan client in-game dengan overlay CEF & live scoreboard"
+        };
+
+        new AlertDialog.Builder(this)
+            .setTitle("Pilih Mode Gameplay · " + serverName)
+            .setItems(options, (dialog, which) -> {
+                if (which == 0) {
+                    Toast.makeText(this, "Menghubungkan ke " + serverName + " via Mesin 3D GTA SA...", Toast.LENGTH_SHORT).show();
+                    SettingsManager.launchResaGame(this, server);
+                } else {
+                    startGameActivity(server, nickname);
+                }
+            })
+            .setNegativeButton("Batal", null)
+            .show();
     }
 
     private void startGameActivity(ServerItem server, String nickname) {
@@ -997,6 +1031,7 @@ public class LauncherActivity extends Activity {
         intent.putExtra("server_ip", server.getIp());
         intent.putExtra("server_port", server.getPort());
         intent.putExtra("player_name", nickname);
+        intent.putExtra("server_name", server.getName() != null ? server.getName() : server.getAddress());
         startActivity(intent);
     }
 }

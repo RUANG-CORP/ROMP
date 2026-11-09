@@ -5,9 +5,255 @@
     android:layout_height="match_parent"
     android:background="@android:color/black">
 
-    <!-- Native GTA:SA GLSurfaceView is dynamically placed at index 0 -->
+    <!-- Layer 0: Interactive 3D Perspective Game Viewport -->
+    <com.rockstargames.gtasa.core.GameViewportView
+        android:id="@+id/game_viewport"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
-    <!-- CEF WebView overlay is inserted programmatically by CefManager at index 1 -->
+    <!-- Layer 1: In-Game Native Controls & SA-MP Console HUD -->
+    <RelativeLayout
+        android:id="@+id/game_controls_layer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Top Status Bar -->
+        <LinearLayout
+            android:id="@+id/top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:gravity="center_vertical"
+            android:background="#AA0A0E17">
+
+            <Button
+                android:id="@+id/btn_game_quit"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="#CCEF4444"
+                android:text="✕ KELUAR"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp" />
+
+            <TextView
+                android:id="@+id/tv_game_server_pill"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="🟢 Menghubungkan ke Server..."
+                android:textColor="#38BDF8"
+                android:textStyle="bold"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btn_switch_to_resa"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="#CC10B981"
+                android:text="🚀 MESIN 3D RESA"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="12sp"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- SA-MP Console & Chat Log (Top Left) -->
+        <ScrollView
+            android:id="@+id/scroll_samp_console"
+            android:layout_width="320dp"
+            android:layout_height="140dp"
+            android:layout_below="@id/top_bar"
+            android:layout_alignParentLeft="true"
+            android:layout_marginLeft="14dp"
+            android:layout_marginTop="10dp"
+            android:background="#88000000"
+            android:padding="8dp">
+
+            <TextView
+                android:id="@+id/tv_samp_console"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#A7F3D0"
+                android:textSize="11sp"
+                android:typeface="monospace"
+                android:text="SA-MP 0.3.7-R3 Mobile Client Started\nConnecting to server...\n" />
+        </ScrollView>
+
+        <!-- Right Side Action Controls -->
+        <LinearLayout
+            android:id="@+id/right_actions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="20dp"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <Button
+                    android:id="@+id/btn_action_chat"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:layout_marginRight="8dp"
+                    android:background="#991E293B"
+                    android:text="💬"
+                    android:textSize="18sp"
+                    android:textColor="#FFFFFF" />
+
+                <Button
+                    android:id="@+id/btn_action_scoreboard"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:background="#991E293B"
+                    android:text="📋"
+                    android:textSize="18sp"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+
+                <Button
+                    android:id="@+id/btn_action_vehicle"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:layout_marginRight="8dp"
+                    android:background="#990284C7"
+                    android:text="🚗"
+                    android:textSize="18sp"
+                    android:textColor="#FFFFFF" />
+
+                <Button
+                    android:id="@+id/btn_action_jump"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:background="#99059669"
+                    android:text="🦘"
+                    android:textSize="18sp"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_action_sprint"
+                android:layout_width="116dp"
+                android:layout_height="48dp"
+                android:background="#99EA580C"
+                android:text="⚡ SPRINT"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <!-- Chat Input Bar (Bottom Centered, toggleable) -->
+        <LinearLayout
+            android:id="@+id/layout_chat_input"
+            android:layout_width="500dp"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="14dp"
+            android:orientation="horizontal"
+            android:background="#EE0F172A"
+            android:padding="6dp"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/et_chat_input"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:hint="Ketik pesan atau /command..."
+                android:textColorHint="#94A3B8"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:background="#1E293B"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:imeOptions="actionSend"
+                android:singleLine="true" />
+
+            <Button
+                android:id="@+id/btn_send_chat"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginLeft="6dp"
+                android:background="#0284C7"
+                android:text="KIRIM"
+                android:textColor="#FFFFFF"
+                android:textStyle="bold"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <!-- In-Game Scoreboard Modal (TAB toggleable) -->
+        <LinearLayout
+            android:id="@+id/layout_scoreboard"
+            android:layout_width="560dp"
+            android:layout_height="320dp"
+            android:layout_centerInParent="true"
+            android:orientation="vertical"
+            android:background="#F00F172A"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:id="@+id/tv_scoreboard_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Papan Skor Pemain (0 / 0)"
+                    android:textColor="#38BDF8"
+                    android:textStyle="bold"
+                    android:textSize="15sp" />
+
+                <Button
+                    android:id="@+id/btn_close_scoreboard"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_alignParentRight="true"
+                    android:background="#EF4444"
+                    android:text="✕"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+            </RelativeLayout>
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/tv_scoreboard_content"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#E2E8F0"
+                    android:textSize="12sp"
+                    android:typeface="monospace"
+                    android:text="Memuat data pemain dari server..." />
+            </ScrollView>
+        </LinearLayout>
+
+    </RelativeLayout>
+
+    <!-- Layer 2: CEF WebView overlay will be dynamically inserted here above native controls -->
 
 </FrameLayout>
-

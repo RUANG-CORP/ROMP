@@ -23,3 +23,8 @@ Banner ads in launcher UI,monetization_ads,skip,yes,skip,Original ReSA has AdMob
 Interstitial pop-up ads before connecting,monetization_ads,skip,yes,skip,Original ReSA displays full screen ads on connect; clone is 100% ad-free
 Ad tracking and analytics telemetry SDKs,monetization_ads,skip,yes,skip,Stripped for privacy zero bloat and instant boot
 
+Native 3D ReSA engine launch via resa:// deep link with seamless server handoff,gameplay_launch,must,yes,yes,One-click server handoff with instant connection zero ads
+Interactive 3D gameplay viewport with perspective highway skyline player and radar,gameplay_simulation,must,yes,yes,Real-time RenderWare aesthetic simulation on SurfaceView
+In-game on-screen virtual joystick and action controls (Sprint Jump Vehicle Chat Scoreboard),gameplay_controls,must,yes,yes,Integrated touch controls for mobile play
+Live in-game SA-MP UDP socket polling with console logs and scoreboard,gameplay_network,must,yes,yes,Continuous ping and player roster synchronization
+Dual-engine gameplay mode selector (ReSA 3D Engine vs ROMP Standalone CEF Client),gameplay_launch,should,no,yes,Enables seamless switching between native 3D engine and standalone CEF mode
