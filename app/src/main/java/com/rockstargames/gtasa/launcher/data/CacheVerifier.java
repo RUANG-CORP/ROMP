@@ -112,6 +112,52 @@ public class CacheVerifier {
         return new CacheStatus(isComplete, missing, filesDir, countHolder[0], sizeHolder[0]);
     }
 
+    public static class FolderInfo {
+        public final String name;
+        public final int expectedFiles;
+        public final int actualFiles;
+        public final long totalBytes;
+
+        public FolderInfo(String name, int expectedFiles, int actualFiles, long totalBytes) {
+            this.name = name;
+            this.expectedFiles = expectedFiles;
+            this.actualFiles = actualFiles;
+            this.totalBytes = totalBytes;
+        }
+
+        public boolean isComplete() {
+            return actualFiles >= expectedFiles && actualFiles > 0;
+        }
+    }
+
+    public static List<FolderInfo> getFolderBreakdown(File baseDir) {
+        List<FolderInfo> list = new ArrayList<>();
+        if (baseDir == null || !baseDir.exists()) return list;
+
+        String[][] folders = {
+                {"textures", "12"},
+                {"data", "178"},
+                {"audio", "47"},
+                {"anim", "3"},
+                {"SAMP", "11"},
+                {"fonts", "3"},
+                {"models", "4"}
+        };
+
+        for (String[] def : folders) {
+            String name = def[0];
+            int expected = Integer.parseInt(def[1]);
+            File sub = new File(baseDir, name);
+            int[] count = new int[1];
+            long[] size = new long[1];
+            if (sub.exists()) {
+                calcDirStats(sub, count, size);
+            }
+            list.add(new FolderInfo(name, expected, count[0], size[0]));
+        }
+        return list;
+    }
+
     private static void calcDirStats(File dir, int[] count, long[] size) {
         File[] list = dir.listFiles();
         if (list == null) return;

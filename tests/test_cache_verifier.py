@@ -39,6 +39,8 @@ class TestCacheVerifier(unittest.TestCase):
         self.assertIn("checkGameData", content)
         self.assertIn("CacheStatus", content)
         self.assertIn("calcDirStats", content)
+        self.assertIn("getFolderBreakdown", content)
+        self.assertIn("FolderInfo", content)
 
 if __name__ == '__main__':
     unittest.main()

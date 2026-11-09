@@ -28,6 +28,10 @@ class TestUniversalLauncherUI(unittest.TestCase):
         self.assertIn("showAddServerDialog", code)
         self.assertIn("launchGameWithServer", code)
         self.assertIn("syncToNativeSettings", code)
+        self.assertIn("btn_refresh_servers", code)
+        self.assertIn("btn_pane_copy_address", code)
+        self.assertIn("btn_sync_resa", code)
+        self.assertIn("tv_files_breakdown", code)
 
     def test_server_adapter_structure(self):
         with open("app/src/main/java/com/rockstargames/gtasa/launcher/ui/ServerAdapter.java", "r", encoding="utf-8") as f:

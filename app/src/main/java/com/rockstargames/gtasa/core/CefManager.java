@@ -128,6 +128,18 @@ public class CefManager {
                     super.onPageFinished(view, url);
                     Log.i(TAG, "CEF Page Loaded: " + url);
                 }
+
+                @Override
+                public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+                    Log.w(TAG, "CEF WebView render process terminated (didCrash=" + (detail != null && detail.didCrash()) + ")");
+                    if (mWebView != null && mWebView.getParent() != null) {
+                        ((ViewGroup) mWebView.getParent()).removeView(mWebView);
+                        mWebView.destroy();
+                        mWebView = null;
+                    }
+                    mIsInitialized = false;
+                    return true;
+                }
             });
 
             // Initial Touch State: Passive Pass-Through (false)

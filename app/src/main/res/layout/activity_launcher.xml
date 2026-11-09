@@ -461,6 +461,17 @@
                         android:paddingStart="12dp"
                         android:paddingEnd="12dp"
                         android:textSize="12sp"
+                        android:layout_marginBottom="6dp" />
+
+                    <!-- Quick Refresh Button -->
+                    <Button
+                        android:id="@+id/btn_refresh_servers"
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:text="🔄 Periksa Ulang Semua Server"
+                        android:textColor="#38BDF8"
+                        android:background="@drawable/bg_input_field"
+                        android:textSize="10sp"
                         android:layout_marginBottom="8dp" />
 
                     <!-- Servers List -->
@@ -505,6 +516,18 @@
                         android:textColor="#94A3B8"
                         android:textSize="12sp"
                         android:layout_marginTop="2dp"
+                        android:layout_marginBottom="4dp" />
+
+                    <Button
+                        android:id="@+id/btn_pane_copy_address"
+                        android:layout_width="wrap_content"
+                        android:layout_height="28dp"
+                        android:text="📋 Salin Alamat IP"
+                        android:textColor="#38BDF8"
+                        android:background="@drawable/bg_btn_secondary"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:textSize="10sp"
                         android:layout_marginBottom="8dp" />
 
                     <!-- Stats Row -->
@@ -755,12 +778,13 @@
                             android:layout_marginBottom="8dp" />
 
                         <TextView
+                            android:id="@+id/tv_files_breakdown"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="• /SAMP/settings.ini (Konfigurasi Client)\n• /texdb/gta3.img &amp; gta_int.img (Tekstur Game)\n• /data/gta.dat (Konfigurasi Data)\n• /anim/ &amp; /audio/ (Animasi dan Suara GTA SA)"
-                            android:textColor="#94A3B8"
+                            android:text="Memuat status folder gim..."
+                            android:textColor="#CBD5E1"
                             android:textSize="11sp"
-                            android:lineSpacingExtra="4dp" />
+                            android:lineSpacingExtra="5dp" />
                     </LinearLayout>
                 </LinearLayout>
             </ScrollView>
@@ -780,6 +804,7 @@
                     android:orientation="vertical"
                     android:paddingBottom="24dp">
 
+                    <!-- Section 1: Multiplayer & Identity -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -791,7 +816,65 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="⚙️ PENGATURAN MULTIPEMAIN &amp; ENGINE"
+                            android:text="👤 IDENTITAS &amp; MULTIPEMAIN"
+                            android:textColor="#38BDF8"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:layout_marginBottom="12dp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Nama Panggilan (Nickname):"
+                            android:textColor="#94A3B8"
+                            android:textSize="12sp"
+                            android:layout_marginBottom="6dp" />
+
+                        <EditText
+                            android:id="@+id/et_settings_nickname"
+                            android:layout_width="match_parent"
+                            android:layout_height="44dp"
+                            android:hint="Contoh: Budi_Santoso"
+                            android:textColor="#FFFFFF"
+                            android:textColorHint="#475569"
+                            android:background="@drawable/bg_input_field"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:textSize="13sp"
+                            android:singleLine="true"
+                            android:layout_marginBottom="12dp" />
+
+                        <CheckBox
+                            android:id="@+id/cb_fast_chat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Aktifkan Fast Chat (Samp)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="13sp"
+                            android:layout_marginBottom="8dp" />
+
+                        <CheckBox
+                            android:id="@+id/cb_voice_chat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="Aktifkan Voice Chat Plugin (Audio)"
+                            android:textColor="#E2E8F0"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- Section 2: Graphics & Engine -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:background="@drawable/bg_card_section"
+                        android:padding="16dp"
+                        android:layout_marginBottom="14dp">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="⚡ GRAFIS &amp; KINERJA"
                             android:textColor="#38BDF8"
                             android:textSize="13sp"
                             android:textStyle="bold"
@@ -813,21 +896,13 @@
                             android:layout_marginBottom="14dp" />
 
                         <CheckBox
-                            android:id="@+id/cb_fast_chat"
+                            android:id="@+id/cb_cef_overlay"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="Aktifkan Fast Chat (Samp)"
+                            android:text="Aktifkan CEF HTML5 Web Overlay &amp; Modern HUD"
                             android:textColor="#E2E8F0"
                             android:textSize="13sp"
-                            android:layout_marginBottom="8dp" />
-
-                        <CheckBox
-                            android:id="@+id/cb_voice_chat"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="Aktifkan Voice Chat Plugin (Audio)"
-                            android:textColor="#E2E8F0"
-                            android:textSize="13sp"
+                            android:checked="true"
                             android:layout_marginBottom="14dp" />
 
                         <Button

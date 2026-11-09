@@ -83,16 +83,21 @@ public class LauncherActivity extends Activity {
 
     // Settings UI elements
     private EditText mEtNickname;
+    private EditText mEtSettingsNickname;
     private Spinner mSpinnerFps;
     private CheckBox mCbFastChat;
     private CheckBox mCbVoiceChat;
+    private CheckBox mCbCefOverlay;
     private EditText mEtCacheUrl;
     private TextView mTvCacheStatus;
+    private TextView mTvFilesBreakdown;
     private Button mBtnSyncResa;
     private Button mBtnDownloadCache;
     private Button mBtnInstallLocalZip;
     private ProgressBar mPbCacheDownload;
     private Button mBtnSaveSettings;
+    private Button mBtnRefreshServers;
+    private Button mBtnPaneCopyAddress;
 
     private EditText mEtSearch;
     private ServerAdapter mCurrentAdapter;
@@ -153,17 +158,46 @@ public class LauncherActivity extends Activity {
         mBtnAddServer = findViewById(R.id.btn_add_server);
 
         mEtNickname = findViewById(R.id.et_nickname);
+        mEtSettingsNickname = findViewById(R.id.et_settings_nickname);
         mSpinnerFps = findViewById(R.id.spinner_fps);
         mCbFastChat = findViewById(R.id.cb_fast_chat);
         mCbVoiceChat = findViewById(R.id.cb_voice_chat);
+        mCbCefOverlay = findViewById(R.id.cb_cef_overlay);
         mEtCacheUrl = findViewById(R.id.et_cache_url);
         mTvCacheStatus = findViewById(R.id.tv_cache_status);
+        mTvFilesBreakdown = findViewById(R.id.tv_files_breakdown);
         mBtnSyncResa = findViewById(R.id.btn_sync_resa);
         mBtnDownloadCache = findViewById(R.id.btn_download_cache);
         mBtnInstallLocalZip = findViewById(R.id.btn_install_local_zip);
         mPbCacheDownload = findViewById(R.id.pb_cache_download);
         mBtnSaveSettings = findViewById(R.id.btn_save_settings);
         mEtSearch = findViewById(R.id.et_search_servers);
+        mBtnRefreshServers = findViewById(R.id.btn_refresh_servers);
+        mBtnPaneCopyAddress = findViewById(R.id.btn_pane_copy_address);
+
+        if (mBtnRefreshServers != null) {
+            mBtnRefreshServers.setOnClickListener(v -> {
+                if (mCurrentIsFavorites) {
+                    loadFavoritesList();
+                } else {
+                    loadInternetList();
+                }
+                Toast.makeText(this, "Memperbarui status server...", Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (mBtnPaneCopyAddress != null) {
+            mBtnPaneCopyAddress.setOnClickListener(v -> {
+                if (mSelectedServer != null) {
+                    android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                    android.content.ClipData clip = android.content.ClipData.newPlainText("Server Address", mSelectedServer.getAddress());
+                    if (clipboard != null) {
+                        clipboard.setPrimaryClip(clip);
+                        Toast.makeText(this, "Alamat " + mSelectedServer.getAddress() + " disalin!", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        }
 
         if (mBtnSyncResa != null) mBtnSyncResa.setOnClickListener(v -> startResaLocalSync());
         if (mBtnDownloadCache != null) mBtnDownloadCache.setOnClickListener(v -> startCacheDownload());
@@ -664,6 +698,9 @@ public class LauncherActivity extends Activity {
         if (mCbVoiceChat != null) {
             mCbVoiceChat.setChecked(mSettings.isVoiceChat());
         }
+        if (mEtSettingsNickname != null) {
+            mEtSettingsNickname.setText(mSettings.getNickname());
+        }
 
         // Check Cache
         CacheVerifier.CacheStatus status = CacheVerifier.checkGameData(this);
@@ -690,6 +727,24 @@ public class LauncherActivity extends Activity {
                 } else {
                     mBtnSyncResa.setVisibility(View.GONE);
                 }
+            }
+        }
+
+        // Update folder breakdown list
+        if (mTvFilesBreakdown != null) {
+            java.util.List<CacheVerifier.FolderInfo> folders = CacheVerifier.getFolderBreakdown(status.getBaseDir());
+            if (folders.isEmpty()) {
+                mTvFilesBreakdown.setText("Belum ada berkas gim di folder target.");
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (CacheVerifier.FolderInfo info : folders) {
+                    long mb = info.totalBytes / (1024 * 1024);
+                    String badge = info.isComplete() ? "✓ Lengkap" : (info.actualFiles > 0 ? "⚠️ Sebagian" : "❌ Belum ada");
+                    sb.append("• ").append(info.name).append("/ : ")
+                      .append(info.actualFiles).append("/").append(info.expectedFiles).append(" berkas (")
+                      .append(mb).append(" MB) · ").append(badge).append("\n");
+                }
+                mTvFilesBreakdown.setText(sb.toString().trim());
             }
         }
     }
@@ -869,6 +924,17 @@ public class LauncherActivity extends Activity {
         }
         if (mCbVoiceChat != null) {
             mSettings.setVoiceChat(mCbVoiceChat.isChecked());
+        }
+
+        if (mEtSettingsNickname != null && mEtSettingsNickname.getText().length() > 0) {
+            String nick = mEtSettingsNickname.getText().toString().trim();
+            if (SettingsManager.isValidNickname(nick)) {
+                mSettings.setNickname(nick);
+                if (mEtNickname != null) mEtNickname.setText(nick);
+            } else {
+                Toast.makeText(this, "Nickname tidak valid (3-20 karakter alfanumerik)", Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
 
         if (mEtCacheUrl != null) {
