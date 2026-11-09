@@ -43,6 +43,26 @@ public class CacheDownloader {
     }
 
     /**
+     * Asynchronously extracts an existing local zip file into destDir.
+     */
+    public static void extractLocalZip(final File localZipFile, final File destDir, final DownloadCallback callback) {
+        if (!localZipFile.exists()) {
+            postError(callback, "File zip lokal tidak ditemukan: " + localZipFile.getAbsolutePath());
+            return;
+        }
+
+        sExecutor.execute(() -> {
+            try {
+                if (!destDir.exists()) destDir.mkdirs();
+                extractZip(localZipFile, destDir, callback);
+                postComplete(callback, destDir);
+            } catch (Exception e) {
+                postError(callback, "Ekstraksi gagal: " + e.getMessage());
+            }
+        });
+    }
+
+    /**
      * Asynchronously downloads a zip archive from sourceUrl and unpacks it into destDir.
      */
     public static void downloadAndExtract(final String sourceUrl, final File destDir, final DownloadCallback callback) {
@@ -80,7 +100,9 @@ public class CacheDownloader {
                     responseCode = conn.getResponseCode();
                 }
 
-                if (responseCode != HttpURLConnection.HTTP_OK) {
+                if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
+                    throw new Exception("File cache tidak ditemukan di server (HTTP 404 Not Found). Silakan periksa URL unduhan di tab Pengaturan.");
+                } else if (responseCode != HttpURLConnection.HTTP_OK) {
                     throw new Exception("HTTP server error code: " + responseCode);
                 }
 

@@ -15,6 +15,8 @@ public class SettingsManager {
     private static final String KEY_NICKNAME = "player_nickname";
     private static final String KEY_FPS_LIMIT = "fps_limit";
     private static final String KEY_FAST_CHAT = "fast_chat";
+    private static final String KEY_CACHE_URL = "cache_cdn_url";
+    private static final String DEFAULT_CACHE_URL = "https://archive.org/download/gtasa-android-data/gtasa_cache.zip";
 
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\[\\]\\$\\@\\.\\=\\?]{3,20}$");
 
@@ -51,6 +53,14 @@ public class SettingsManager {
 
     public void setFastChat(boolean fastChat) {
         mPrefs.edit().putBoolean(KEY_FAST_CHAT, fastChat).apply();
+    }
+
+    public String getCacheUrl() {
+        return mPrefs.getString(KEY_CACHE_URL, DEFAULT_CACHE_URL);
+    }
+
+    public void setCacheUrl(String url) {
+        mPrefs.edit().putString(KEY_CACHE_URL, url).apply();
     }
 
     /**

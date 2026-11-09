@@ -3,7 +3,7 @@ Favorit server list with add/delete/persistence,launcher_servers,must,yes,yes,St
 Internet and hosted public masterlist directory,launcher_servers,must,yes,yes,Pre-seeded with active OMP/SAMP servers
 Live UDP query for ping players and hostname,launcher_servers,must,yes,yes,Non-blocking worker thread UDP query (opcode i)
 Direct Connect add server dialog (IP Port Name),launcher_servers,must,yes,yes,Validates IP and port range (1-65535)
-Server search and filtering by query/ping,launcher_servers,should,yes,no,Can filter list dynamically by text
+Server search and filtering by query/ping,launcher_servers,should,yes,yes,Realtime SearchBar filtering by hostname and IP address
 Server detailed inspect sheet (rules gamemode players),launcher_servers,should,yes,no,UDP opcode r and c
 Player nickname setting with character validation,launcher_settings,must,yes,yes,Regex validated (3-20 chars alphanumeric and brackets)
 FPS Limit configuration (30 60 90 120 FPS),launcher_settings,must,yes,yes,Saved to preferences and settings.ini

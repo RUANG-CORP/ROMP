@@ -30,26 +30,49 @@ public class ServerAdapter extends BaseAdapter {
     }
 
     private final Context mContext;
-    private final List<ServerItem> mServers;
+    private final List<ServerItem> mAllServers;
+    private final List<ServerItem> mFilteredServers;
     private final boolean mIsFavorites;
     private final OnServerActionListener mListener;
     private final Map<String, ServerInfo> mInfoCache = new HashMap<>();
 
     public ServerAdapter(Context context, List<ServerItem> servers, boolean isFavorites, OnServerActionListener listener) {
         this.mContext = context;
-        this.mServers = servers;
+        this.mAllServers = new java.util.ArrayList<>(servers);
+        this.mFilteredServers = new java.util.ArrayList<>(servers);
         this.mIsFavorites = isFavorites;
         this.mListener = listener;
     }
 
+    public void filter(String query) {
+        mFilteredServers.clear();
+        if (query == null || query.trim().isEmpty()) {
+            mFilteredServers.addAll(mAllServers);
+        } else {
+            String lower = query.trim().toLowerCase();
+            for (ServerItem item : mAllServers) {
+                String name = item.getName() != null ? item.getName().toLowerCase() : "";
+                String addr = item.getAddress().toLowerCase();
+                ServerInfo info = mInfoCache.get(item.getAddress());
+                String hostname = (info != null && info.getHostname() != null) ? info.getHostname().toLowerCase() : "";
+                String gamemode = (info != null && info.getGamemode() != null) ? info.getGamemode().toLowerCase() : "";
+
+                if (name.contains(lower) || addr.contains(lower) || hostname.contains(lower) || gamemode.contains(lower)) {
+                    mFilteredServers.add(item);
+                }
+            }
+        }
+        notifyDataSetChanged();
+    }
+
     @Override
     public int getCount() {
-        return mServers.size();
+        return mFilteredServers.size();
     }
 
     @Override
     public ServerItem getItem(int position) {
-        return mServers.get(position);
+        return mFilteredServers.get(position);
     }
 
     @Override

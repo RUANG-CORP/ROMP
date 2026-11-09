@@ -53,10 +53,15 @@ public class LauncherActivity extends Activity {
     // Settings UI elements
     private EditText mEtNickname;
     private Spinner mSpinnerFps;
+    private EditText mEtCacheUrl;
     private TextView mTvCacheStatus;
     private Button mBtnDownloadCache;
+    private Button mBtnInstallLocalZip;
     private ProgressBar mPbCacheDownload;
     private Button mBtnSaveSettings;
+
+    private EditText mEtSearch;
+    private ServerAdapter mCurrentAdapter;
 
     private boolean mCurrentIsFavorites = true;
 
@@ -85,14 +90,29 @@ public class LauncherActivity extends Activity {
 
         mEtNickname = findViewById(R.id.et_nickname);
         mSpinnerFps = findViewById(R.id.spinner_fps);
+        mEtCacheUrl = findViewById(R.id.et_cache_url);
         mTvCacheStatus = findViewById(R.id.tv_cache_status);
         mBtnDownloadCache = findViewById(R.id.btn_download_cache);
+        mBtnInstallLocalZip = findViewById(R.id.btn_install_local_zip);
         mPbCacheDownload = findViewById(R.id.pb_cache_download);
         mBtnSaveSettings = findViewById(R.id.btn_save_settings);
+        mEtSearch = findViewById(R.id.et_search_servers);
 
         mBtnDownloadCache.setOnClickListener(v -> startCacheDownload());
-
+        mBtnInstallLocalZip.setOnClickListener(v -> promptInstallLocalZip());
         mBtnAddServer.setOnClickListener(v -> showAddServerDialog());
+
+        if (mEtSearch != null) {
+            mEtSearch.addTextChangedListener(new android.text.TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    if (mCurrentAdapter != null) {
+                        mCurrentAdapter.filter(s != null ? s.toString() : "");
+                    }
+                }
+                @Override public void afterTextChanged(android.text.Editable s) {}
+            });
+        }
     }
 
     private void setupTabs() {
@@ -151,7 +171,11 @@ public class LauncherActivity extends Activity {
                 Toast.makeText(LauncherActivity.this, "Server dihapus dari Favorit", Toast.LENGTH_SHORT).show();
             }
         });
+        mCurrentAdapter = adapter;
         mListViewServers.setAdapter(adapter);
+        if (mEtSearch != null && mEtSearch.getText().length() > 0) {
+            mCurrentAdapter.filter(mEtSearch.getText().toString());
+        }
     }
 
     private void loadInternetList() {
@@ -167,7 +191,11 @@ public class LauncherActivity extends Activity {
                 // Not applicable for public tab
             }
         });
+        mCurrentAdapter = adapter;
         mListViewServers.setAdapter(adapter);
+        if (mEtSearch != null && mEtSearch.getText().length() > 0) {
+            mCurrentAdapter.filter(mEtSearch.getText().toString());
+        }
     }
 
     private void showAddServerDialog() {
@@ -230,6 +258,9 @@ public class LauncherActivity extends Activity {
 
     private void refreshSettingsValues() {
         mEtNickname.setText(mSettings.getNickname());
+        if (mEtCacheUrl != null) {
+            mEtCacheUrl.setText(mSettings.getCacheUrl());
+        }
 
         int currentFps = mSettings.getFpsLimit();
         if (currentFps == 30) mSpinnerFps.setSelection(0);
@@ -248,7 +279,7 @@ public class LauncherActivity extends Activity {
         } else {
             mTvCacheStatus.setText("Status: Cache belum lengkap\n" + status.getMissingSummary() + "\nLokasi target: " + status.getBaseDir().getAbsolutePath());
             mTvCacheStatus.setTextColor(Color.parseColor("#F59E0B"));
-            mBtnDownloadCache.setText("DOWNLOAD GAME DATA (AUTO INSTALL)");
+            mBtnDownloadCache.setText("DOWNLOAD DARI CDN");
             mBtnDownloadCache.setBackgroundColor(Color.parseColor("#10B981"));
         }
     }
@@ -264,8 +295,11 @@ public class LauncherActivity extends Activity {
         mBtnDownloadCache.setEnabled(false);
         mBtnDownloadCache.setText("Mengunduh...");
 
-        // CDN endpoint for GTA SA clean data cache
-        String cacheUrl = "https://github.com/Valleta-Network/assets/releases/download/v1.0/gtasa_cache_lite.zip";
+        // CDN endpoint from saved settings
+        String cacheUrl = mSettings.getCacheUrl();
+        if (cacheUrl == null || cacheUrl.trim().isEmpty()) {
+            cacheUrl = "https://archive.org/download/gtasa-android-data/gtasa_cache.zip";
+        }
 
         CacheDownloader.downloadAndExtract(cacheUrl, getExternalFilesDir(null), new CacheDownloader.DownloadCallback() {
             @Override
@@ -299,6 +333,53 @@ public class LauncherActivity extends Activity {
         });
     }
 
+    private void promptInstallLocalZip() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Pasang dari File ZIP Lokal");
+        builder.setMessage("Masukkan lokasi path file .zip game data GTA SA di penyimpanan perangkat:");
+
+        final EditText etPath = new EditText(this);
+        etPath.setHint("/sdcard/Download/gtasa_cache.zip");
+        etPath.setText(android.os.Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download/gtasa_cache.zip");
+        etPath.setTextColor(Color.WHITE);
+        builder.setView(etPath);
+
+        builder.setPositiveButton("Ekstrak", (dialog, which) -> {
+            String path = etPath.getText().toString().trim();
+            java.io.File file = new java.io.File(path);
+            if (!file.exists()) {
+                Toast.makeText(this, "File tidak ditemukan: " + path, Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            mPbCacheDownload.setVisibility(View.VISIBLE);
+            mTvCacheStatus.setText("Mengekstrak file ZIP lokal...");
+            mBtnInstallLocalZip.setEnabled(false);
+
+            CacheDownloader.extractLocalZip(file, getExternalFilesDir(null), new CacheDownloader.DownloadCallback() {
+                @Override public void onProgress(int percent, long current, long total) {}
+                @Override public void onExtracting(String entryName) {
+                    mTvCacheStatus.setText("Mengekstrak: " + entryName);
+                }
+                @Override public void onComplete(java.io.File destinationDir) {
+                    mPbCacheDownload.setVisibility(View.GONE);
+                    mBtnInstallLocalZip.setEnabled(true);
+                    Toast.makeText(LauncherActivity.this, "Ekstraksi game data selesai!", Toast.LENGTH_LONG).show();
+                    refreshSettingsValues();
+                }
+                @Override public void onError(String errorMessage) {
+                    mPbCacheDownload.setVisibility(View.GONE);
+                    mBtnInstallLocalZip.setEnabled(true);
+                    Toast.makeText(LauncherActivity.this, "Gagal: " + errorMessage, Toast.LENGTH_LONG).show();
+                    refreshSettingsValues();
+                }
+            });
+        });
+
+        builder.setNegativeButton("Batal", null);
+        builder.show();
+    }
+
     private void saveSettingsValues() {
         String nickname = mEtNickname.getText().toString().trim();
         if (!SettingsManager.isValidNickname(nickname)) {
@@ -315,6 +396,13 @@ public class LauncherActivity extends Activity {
         else if (selectedFpsIndex == 2) fps = 90;
         else if (selectedFpsIndex == 3) fps = 120;
         mSettings.setFpsLimit(fps);
+
+        if (mEtCacheUrl != null) {
+            String url = mEtCacheUrl.getText().toString().trim();
+            if (!url.isEmpty()) {
+                mSettings.setCacheUrl(url);
+            }
+        }
 
         Toast.makeText(this, "Pengaturan berhasil disimpan!", Toast.LENGTH_SHORT).show();
     }
