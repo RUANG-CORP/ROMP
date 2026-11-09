@@ -10,3 +10,6 @@ __pycache__/
 *.pyc
 *.png
 window_dump.xml
+
+replica/target_apk/
+

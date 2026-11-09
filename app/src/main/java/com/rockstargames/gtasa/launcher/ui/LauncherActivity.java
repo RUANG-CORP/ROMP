@@ -46,12 +46,39 @@ public class LauncherActivity extends Activity {
     private ServerRepository mRepo;
     private SettingsManager mSettings;
 
-    private ListView mListViewServers;
+    // Navigation Rail
+    private Button mBtnNavHome;
+    private Button mBtnNavServers;
+    private Button mBtnNavFiles;
+    private Button mBtnNavSettings;
+
+    // View Containers
+    private View mLayoutHomeView;
+    private View mLayoutServerListContainer;
+    private ScrollView mLayoutFilesView;
     private ScrollView mLayoutSettings;
+
+    // Home View Elements
+    private TextView mTvHomeSelectedServerName;
+    private TextView mTvHomeSelectedServerAddress;
+    private TextView mTvHomeSelectedServerStats;
+    private Button mBtnMainOnline;
+    private Button mBtnMainOffline;
+    private ListView mLvPopularServers;
+
+    // Servers Master-Detail Pane Elements
+    private ListView mListViewServers;
+    private TextView mTvPaneServerName;
+    private TextView mTvPaneServerAddress;
+    private TextView mTvPaneServerPing;
+    private TextView mTvPaneServerPlayers;
+    private TextView mTvPaneServerGamemode;
+    private TextView mTvPaneServerRules;
+    private TextView mTvPaneServerPlayersList;
+    private Button mBtnPaneConnect;
 
     private Button mTabFavorites;
     private Button mTabInternet;
-    private Button mTabSettings;
     private Button mBtnAddServer;
 
     // Settings UI elements
@@ -70,6 +97,7 @@ public class LauncherActivity extends Activity {
     private ServerAdapter mCurrentAdapter;
 
     private boolean mCurrentIsFavorites = true;
+    private ServerItem mSelectedServer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,18 +108,47 @@ public class LauncherActivity extends Activity {
         mSettings = new SettingsManager(this);
 
         initViews();
-        setupTabs();
+        setupNavigationRail();
+        setupSubTabs();
         setupSettingsView();
-        showFavoritesTab();
+        setupDefaultServer();
+        showHomeTab();
     }
 
     private void initViews() {
-        mListViewServers = findViewById(R.id.lv_servers);
+        // Navigation Rail
+        mBtnNavHome = findViewById(R.id.btn_nav_home);
+        mBtnNavServers = findViewById(R.id.btn_nav_servers);
+        mBtnNavFiles = findViewById(R.id.btn_nav_files);
+        mBtnNavSettings = findViewById(R.id.btn_nav_settings);
+
+        // View Containers
+        mLayoutHomeView = findViewById(R.id.layout_home_view);
+        mLayoutServerListContainer = findViewById(R.id.layout_server_list_container);
+        mLayoutFilesView = findViewById(R.id.layout_files_view);
         mLayoutSettings = findViewById(R.id.layout_settings_view);
+
+        // Home View elements
+        mTvHomeSelectedServerName = findViewById(R.id.tv_home_selected_server_name);
+        mTvHomeSelectedServerAddress = findViewById(R.id.tv_home_selected_server_address);
+        mTvHomeSelectedServerStats = findViewById(R.id.tv_home_selected_server_stats);
+        mBtnMainOnline = findViewById(R.id.btn_main_online);
+        mBtnMainOffline = findViewById(R.id.btn_main_offline);
+        mLvPopularServers = findViewById(R.id.lv_popular_servers);
+
+        // Servers Master-Detail Pane elements
+        mListViewServers = findViewById(R.id.lv_servers);
+        mTvPaneServerName = findViewById(R.id.tv_pane_server_name);
+        mTvPaneServerAddress = findViewById(R.id.tv_pane_server_address);
+        mTvPaneServerPing = findViewById(R.id.tv_pane_server_ping);
+        mTvPaneServerPlayers = findViewById(R.id.tv_pane_server_players);
+        mTvPaneServerGamemode = findViewById(R.id.tv_pane_server_gamemode);
+        mTvPaneServerRules = findViewById(R.id.tv_pane_server_rules);
+        mTvPaneServerPlayersList = findViewById(R.id.tv_pane_server_players_list);
+        mBtnPaneConnect = findViewById(R.id.btn_pane_connect);
 
         mTabFavorites = findViewById(R.id.tab_favorites);
         mTabInternet = findViewById(R.id.tab_internet);
-        mTabSettings = findViewById(R.id.tab_settings);
         mBtnAddServer = findViewById(R.id.btn_add_server);
 
         mEtNickname = findViewById(R.id.et_nickname);
@@ -106,9 +163,33 @@ public class LauncherActivity extends Activity {
         mBtnSaveSettings = findViewById(R.id.btn_save_settings);
         mEtSearch = findViewById(R.id.et_search_servers);
 
-        mBtnDownloadCache.setOnClickListener(v -> startCacheDownload());
-        mBtnInstallLocalZip.setOnClickListener(v -> promptInstallLocalZip());
-        mBtnAddServer.setOnClickListener(v -> showAddServerDialog());
+        if (mBtnDownloadCache != null) mBtnDownloadCache.setOnClickListener(v -> startCacheDownload());
+        if (mBtnInstallLocalZip != null) mBtnInstallLocalZip.setOnClickListener(v -> promptInstallLocalZip());
+        if (mBtnAddServer != null) mBtnAddServer.setOnClickListener(v -> showAddServerDialog());
+
+        if (mBtnMainOnline != null) {
+            mBtnMainOnline.setOnClickListener(v -> {
+                if (mSelectedServer != null) {
+                    launchGameWithServer(mSelectedServer);
+                } else {
+                    Toast.makeText(this, "Pilih server di sebelah kanan untuk bermain!", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        if (mBtnMainOffline != null) {
+            mBtnMainOffline.setOnClickListener(v -> launchOfflineGame());
+        }
+
+        // Social links
+        View btnDiscord = findViewById(R.id.btn_link_discord);
+        if (btnDiscord != null) btnDiscord.setOnClickListener(v -> Toast.makeText(this, "Komunitas Discord ReSA:MP", Toast.LENGTH_SHORT).show());
+        View btnTelegram = findViewById(R.id.btn_link_telegram);
+        if (btnTelegram != null) btnTelegram.setOnClickListener(v -> Toast.makeText(this, "Saluran Telegram ReSA:MP", Toast.LENGTH_SHORT).show());
+        View btnWebsite = findViewById(R.id.btn_link_website);
+        if (btnWebsite != null) btnWebsite.setOnClickListener(v -> Toast.makeText(this, "Situs Resmi ReSA Multiplayer: resa-mp.com", Toast.LENGTH_SHORT).show());
+        View btnAbout = findViewById(R.id.btn_link_about);
+        if (btnAbout != null) btnAbout.setOnClickListener(v -> Toast.makeText(this, "ReSA Multiplayer Mobile Client v1.1.6 (Ad-Free Edition)", Toast.LENGTH_LONG).show());
 
         Button btnMockCache = findViewById(R.id.btn_mock_cache);
         if (btnMockCache != null) {
@@ -136,45 +217,237 @@ public class LauncherActivity extends Activity {
         }
     }
 
-    private void setupTabs() {
-        mTabFavorites.setOnClickListener(v -> showFavoritesTab());
-        mTabInternet.setOnClickListener(v -> showInternetTab());
-        mTabSettings.setOnClickListener(v -> showSettingsTab());
+    private void setupNavigationRail() {
+        if (mBtnNavHome != null) mBtnNavHome.setOnClickListener(v -> showHomeTab());
+        if (mBtnNavServers != null) mBtnNavServers.setOnClickListener(v -> showServersTab());
+        if (mBtnNavFiles != null) mBtnNavFiles.setOnClickListener(v -> showFilesTab());
+        if (mBtnNavSettings != null) mBtnNavSettings.setOnClickListener(v -> showSettingsTab());
+    }
+
+    private void setupSubTabs() {
+        if (mTabFavorites != null) mTabFavorites.setOnClickListener(v -> showFavoritesTab());
+        if (mTabInternet != null) mTabInternet.setOnClickListener(v -> showInternetTab());
+    }
+
+    private void showHomeTab() {
+        if (mLayoutHomeView != null) mLayoutHomeView.setVisibility(View.VISIBLE);
+        if (mLayoutServerListContainer != null) mLayoutServerListContainer.setVisibility(View.GONE);
+        if (mLayoutFilesView != null) mLayoutFilesView.setVisibility(View.GONE);
+        if (mLayoutSettings != null) mLayoutSettings.setVisibility(View.GONE);
+        highlightNavButton(mBtnNavHome);
+        loadPopularServers();
+    }
+
+    private void showServersTab() {
+        if (mLayoutHomeView != null) mLayoutHomeView.setVisibility(View.GONE);
+        if (mLayoutServerListContainer != null) mLayoutServerListContainer.setVisibility(View.VISIBLE);
+        if (mLayoutFilesView != null) mLayoutFilesView.setVisibility(View.GONE);
+        if (mLayoutSettings != null) mLayoutSettings.setVisibility(View.GONE);
+        highlightNavButton(mBtnNavServers);
+        if (mCurrentIsFavorites) {
+            loadFavoritesList();
+        } else {
+            loadInternetList();
+        }
+    }
+
+    private void showFilesTab() {
+        if (mLayoutHomeView != null) mLayoutHomeView.setVisibility(View.GONE);
+        if (mLayoutServerListContainer != null) mLayoutServerListContainer.setVisibility(View.GONE);
+        if (mLayoutFilesView != null) mLayoutFilesView.setVisibility(View.VISIBLE);
+        if (mLayoutSettings != null) mLayoutSettings.setVisibility(View.GONE);
+        highlightNavButton(mBtnNavFiles);
+        refreshSettingsValues();
+    }
+
+    private void showSettingsTab() {
+        if (mLayoutHomeView != null) mLayoutHomeView.setVisibility(View.GONE);
+        if (mLayoutServerListContainer != null) mLayoutServerListContainer.setVisibility(View.GONE);
+        if (mLayoutFilesView != null) mLayoutFilesView.setVisibility(View.GONE);
+        if (mLayoutSettings != null) mLayoutSettings.setVisibility(View.VISIBLE);
+        highlightNavButton(mBtnNavSettings);
+        refreshSettingsValues();
+    }
+
+    private void highlightNavButton(Button active) {
+        Button[] all = {mBtnNavHome, mBtnNavServers, mBtnNavFiles, mBtnNavSettings};
+        for (Button b : all) {
+            if (b == null) continue;
+            if (b == active) {
+                b.setBackgroundResource(R.drawable.bg_nav_item_selected);
+                b.setTextColor(Color.parseColor("#38BDF8"));
+            } else {
+                b.setBackgroundColor(Color.TRANSPARENT);
+                b.setTextColor(Color.parseColor("#94A3B8"));
+            }
+        }
     }
 
     private void showFavoritesTab() {
         mCurrentIsFavorites = true;
-        mListViewServers.setVisibility(View.VISIBLE);
-        mLayoutSettings.setVisibility(View.GONE);
-        mBtnAddServer.setVisibility(View.VISIBLE);
-
-        highlightTab(mTabFavorites, mTabInternet, mTabSettings);
+        if (mTabFavorites != null && mTabInternet != null) {
+            mTabFavorites.setTextColor(Color.parseColor("#38BDF8"));
+            mTabInternet.setTextColor(Color.parseColor("#94A3B8"));
+        }
         loadFavoritesList();
     }
 
     private void showInternetTab() {
         mCurrentIsFavorites = false;
-        mListViewServers.setVisibility(View.VISIBLE);
-        mLayoutSettings.setVisibility(View.GONE);
-        mBtnAddServer.setVisibility(View.GONE);
-
-        highlightTab(mTabInternet, mTabFavorites, mTabSettings);
+        if (mTabFavorites != null && mTabInternet != null) {
+            mTabFavorites.setTextColor(Color.parseColor("#94A3B8"));
+            mTabInternet.setTextColor(Color.parseColor("#38BDF8"));
+        }
         loadInternetList();
     }
 
-    private void showSettingsTab() {
-        mListViewServers.setVisibility(View.GONE);
-        mLayoutSettings.setVisibility(View.VISIBLE);
-        mBtnAddServer.setVisibility(View.GONE);
-
-        highlightTab(mTabSettings, mTabFavorites, mTabInternet);
-        refreshSettingsValues();
+    private void setupDefaultServer() {
+        List<ServerItem> list = mRepo.getFavorites();
+        if (!list.isEmpty()) {
+            selectServerForPlay(list.get(0));
+            updateServerPane(list.get(0));
+        } else {
+            List<ServerItem> pub = mRepo.getPublicServers();
+            if (!pub.isEmpty()) {
+                selectServerForPlay(pub.get(0));
+                updateServerPane(pub.get(0));
+            }
+        }
     }
 
-    private void highlightTab(Button active, Button inactive1, Button inactive2) {
-        active.setTextColor(Color.parseColor("#38BDF8"));
-        inactive1.setTextColor(Color.parseColor("#94A3B8"));
-        inactive2.setTextColor(Color.parseColor("#94A3B8"));
+    private void selectServerForPlay(ServerItem server) {
+        if (server == null) return;
+        mSelectedServer = server;
+        if (mTvHomeSelectedServerName != null) {
+            mTvHomeSelectedServerName.setText(server.getName() != null ? server.getName() : server.getAddress());
+        }
+        if (mTvHomeSelectedServerAddress != null) {
+            mTvHomeSelectedServerAddress.setText(server.getAddress() + " · " + (server.getName() != null ? server.getName() : "SA-MP Server"));
+        }
+        if (mTvHomeSelectedServerStats != null) {
+            mTvHomeSelectedServerStats.setText("Memeriksa status server...");
+        }
+
+        SampQueryClient.queryServer(server.getIp(), server.getPort(), info -> {
+            if (info != null && info.isOnline()) {
+                if (mTvHomeSelectedServerName != null) {
+                    mTvHomeSelectedServerName.setText(info.getHostname());
+                }
+                if (mTvHomeSelectedServerStats != null) {
+                    mTvHomeSelectedServerStats.setText("⚡ " + info.getPingMs() + " ms  ·  👥 " + info.getPlayers() + " / " + info.getMaxPlayers() + " Pemain");
+                    mTvHomeSelectedServerStats.setTextColor(Color.parseColor("#10B981"));
+                }
+            } else {
+                if (mTvHomeSelectedServerStats != null) {
+                    mTvHomeSelectedServerStats.setText("Server Offline");
+                    mTvHomeSelectedServerStats.setTextColor(Color.parseColor("#EF4444"));
+                }
+            }
+        });
+    }
+
+    private void updateServerPane(ServerItem server) {
+        if (server == null) return;
+        mSelectedServer = server;
+        if (mTvPaneServerName != null) {
+            mTvPaneServerName.setText(server.getName() != null ? server.getName() : server.getAddress());
+        }
+        if (mTvPaneServerAddress != null) {
+            mTvPaneServerAddress.setText("Alamat IP: " + server.getAddress());
+        }
+        if (mTvPaneServerPing != null) {
+            mTvPaneServerPing.setText("Ping: ...");
+        }
+        if (mTvPaneServerPlayers != null) {
+            mTvPaneServerPlayers.setText("Pemain: - / -");
+        }
+        if (mTvPaneServerGamemode != null) {
+            mTvPaneServerGamemode.setText("Mode: ...");
+        }
+        if (mTvPaneServerRules != null) {
+            mTvPaneServerRules.setText("Menghubungi server via UDP...");
+        }
+        if (mTvPaneServerPlayersList != null) {
+            mTvPaneServerPlayersList.setText("Memuat daftar pemain...");
+        }
+        if (mBtnPaneConnect != null) {
+            mBtnPaneConnect.setOnClickListener(v -> launchGameWithServer(server));
+        }
+
+        SampQueryClient.queryServerDetails(server.getIp(), server.getPort(), info -> {
+            if (info != null && info.isOnline()) {
+                if (mTvPaneServerName != null) {
+                    mTvPaneServerName.setText(info.getHostname());
+                }
+                if (mTvPaneServerPing != null) {
+                    mTvPaneServerPing.setText("Ping: " + info.getPingMs() + "ms");
+                }
+                if (mTvPaneServerPlayers != null) {
+                    mTvPaneServerPlayers.setText("Pemain: " + info.getPlayers() + "/" + info.getMaxPlayers());
+                }
+                if (mTvPaneServerGamemode != null) {
+                    mTvPaneServerGamemode.setText("Mode: " + info.getGamemode());
+                }
+                if (mTvPaneServerRules != null) {
+                    StringBuilder sb = new StringBuilder();
+                    for (Map.Entry<String, String> e : info.getRules().entrySet()) {
+                        sb.append(e.getKey()).append("=").append(e.getValue()).append("  |  ");
+                    }
+                    mTvPaneServerRules.setText(sb.length() > 0 ? sb.toString() : "Tidak ada rules tambahan.");
+                }
+                if (mTvPaneServerPlayersList != null) {
+                    if (!info.getPlayerList().isEmpty()) {
+                        StringBuilder sb = new StringBuilder();
+                        for (ServerInfo.PlayerEntry p : info.getPlayerList()) {
+                            sb.append("• ").append(p.getName()).append(" (Skor: ").append(p.getScore()).append(" | Ping: ").append(p.getPing()).append("ms)\n");
+                        }
+                        mTvPaneServerPlayersList.setText(sb.toString().trim());
+                    } else if (info.getPlayers() == 0) {
+                        mTvPaneServerPlayersList.setText("Tidak ada pemain di server saat ini.");
+                    } else {
+                        mTvPaneServerPlayersList.setText("Server membatasi query daftar nama pemain.");
+                    }
+                }
+            } else {
+                if (mTvPaneServerPing != null) {
+                    mTvPaneServerPing.setText("Ping: Offline");
+                }
+                if (mTvPaneServerPlayers != null) {
+                    mTvPaneServerPlayers.setText("Pemain: 0/0");
+                }
+                if (mTvPaneServerGamemode != null) {
+                    mTvPaneServerGamemode.setText("Mode: -");
+                }
+                if (mTvPaneServerRules != null) {
+                    mTvPaneServerRules.setText("Server tidak merespons query UDP.");
+                }
+                if (mTvPaneServerPlayersList != null) {
+                    mTvPaneServerPlayersList.setText("Server offline.");
+                }
+            }
+        });
+    }
+
+    private void loadPopularServers() {
+        if (mLvPopularServers == null) return;
+        List<ServerItem> publicServers = mRepo.getPublicServers();
+        ServerAdapter adapter = new ServerAdapter(this, publicServers, false, new ServerAdapter.OnServerActionListener() {
+            @Override
+            public void onConnect(ServerItem server) {
+                selectServerForPlay(server);
+                launchGameWithServer(server);
+            }
+
+            @Override
+            public void onDelete(ServerItem server) {}
+
+            @Override
+            public void onInspect(ServerItem server) {
+                selectServerForPlay(server);
+                Toast.makeText(LauncherActivity.this, "Server terpilih: " + server.getAddress(), Toast.LENGTH_SHORT).show();
+            }
+        });
+        mLvPopularServers.setAdapter(adapter);
     }
 
     private void loadFavoritesList() {
@@ -194,6 +467,7 @@ public class LauncherActivity extends Activity {
 
             @Override
             public void onInspect(ServerItem server) {
+                updateServerPane(server);
                 showServerDetailsDialog(server);
             }
         });
@@ -219,6 +493,7 @@ public class LauncherActivity extends Activity {
 
             @Override
             public void onInspect(ServerItem server) {
+                updateServerPane(server);
                 showServerDetailsDialog(server);
             }
         });
@@ -543,7 +818,18 @@ public class LauncherActivity extends Activity {
         Toast.makeText(this, "Pengaturan berhasil disimpan!", Toast.LENGTH_SHORT).show();
     }
 
+    private void launchOfflineGame() {
+        Intent intent = new Intent(this, GTASA.class);
+        startActivity(intent);
+    }
+
     private void launchGameWithServer(ServerItem server) {
+        if (mEtNickname != null && mEtNickname.getText().length() > 0) {
+            String inputName = mEtNickname.getText().toString().trim();
+            if (SettingsManager.isValidNickname(inputName)) {
+                mSettings.setNickname(inputName);
+            }
+        }
         String nickname = mSettings.getNickname();
         if (!SettingsManager.isValidNickname(nickname)) {
             Toast.makeText(this, "Silakan atur Nickname yang valid di tab Pengaturan terlebih dahulu!", Toast.LENGTH_LONG).show();
