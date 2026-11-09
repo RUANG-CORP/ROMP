@@ -30,6 +30,58 @@ def parse_samp_info_response(data: bytes):
         'gamemode': gamemode
     }
 
+def parse_samp_rules_response(data: bytes):
+    if len(data) < 11 or data[:4] != b'SAMP' or chr(data[10]) != 'r':
+        return None
+    offset = 11
+    rule_count = struct.unpack_from('<H', data, offset)[0]
+    offset += 2
+    rules = {}
+    for _ in range(rule_count):
+        if offset >= len(data): break
+        name_len = struct.unpack_from('<B', data, offset)[0]
+        offset += 1
+        name = data[offset:offset+name_len].decode('latin1', errors='replace')
+        offset += name_len
+        val_len = struct.unpack_from('<B', data, offset)[0]
+        offset += 1
+        val = data[offset:offset+val_len].decode('latin1', errors='replace')
+        offset += val_len
+        rules[name] = val
+    return rules
+
+def parse_samp_players_response(data: bytes):
+    if len(data) < 11 or data[:4] != b'SAMP':
+        return None
+    opcode = chr(data[10])
+    offset = 11
+    player_count = struct.unpack_from('<H', data, offset)[0]
+    offset += 2
+    players = []
+    if opcode == 'd': # detailed
+        for _ in range(player_count):
+            if offset >= len(data): break
+            player_id = struct.unpack_from('<B', data, offset)[0]
+            offset += 1
+            name_len = struct.unpack_from('<B', data, offset)[0]
+            offset += 1
+            name = data[offset:offset+name_len].decode('latin1', errors='replace')
+            offset += name_len
+            score, ping = struct.unpack_from('<II', data, offset)
+            offset += 8
+            players.append({'id': player_id, 'name': name, 'score': score, 'ping': ping})
+    elif opcode == 'c': # basic
+        for _ in range(player_count):
+            if offset >= len(data): break
+            name_len = struct.unpack_from('<B', data, offset)[0]
+            offset += 1
+            name = data[offset:offset+name_len].decode('latin1', errors='replace')
+            offset += name_len
+            score = struct.unpack_from('<I', data, offset)[0]
+            offset += 4
+            players.append({'id': 0, 'name': name, 'score': score, 'ping': 0})
+    return players
+
 class TestSampQueryProtocol(unittest.TestCase):
     def test_query_packet_format(self):
         pkt = create_samp_query_packet('127.0.0.1', 7777, 'i')
@@ -48,6 +100,27 @@ class TestSampQueryProtocol(unittest.TestCase):
         self.assertEqual(info['max_players'], 100)
         self.assertEqual(info['hostname'], 'My Roleplay Server')
         self.assertEqual(info['gamemode'], 'Roleplay')
+
+    def test_rules_response_parsing(self):
+        # Header: SAMP + 127.0.0.1 + 7777 + 'r'
+        header = b'SAMP\x7f\x00\x00\x01\x1e\x61r'
+        # 2 rules: lagcomp: On, version: 0.3.7
+        rule_data = struct.pack('<H', 2) + b'\x07lagcomp\x02On\x07version\x050.3.7'
+        rules = parse_samp_rules_response(header + rule_data)
+        self.assertIsNotNone(rules)
+        self.assertEqual(rules.get('lagcomp'), 'On')
+        self.assertEqual(rules.get('version'), '0.3.7')
+
+    def test_detailed_players_parsing(self):
+        # Header: SAMP + 127.0.0.1 + 7777 + 'd'
+        header = b'SAMP\x7f\x00\x00\x01\x1e\x61d'
+        # 1 player: id=1, name='Valleta', score=500, ping=35
+        player_data = struct.pack('<H', 1) + b'\x01\x07Valleta' + struct.pack('<II', 500, 35)
+        players = parse_samp_players_response(header + player_data)
+        self.assertEqual(len(players), 1)
+        self.assertEqual(players[0]['name'], 'Valleta')
+        self.assertEqual(players[0]['score'], 500)
+        self.assertEqual(players[0]['ping'], 35)
 
     def test_java_files_exist(self):
         self.assertTrue(os.path.exists("app/src/main/java/com/rockstargames/gtasa/launcher/net/ServerInfo.java"))

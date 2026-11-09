@@ -1,9 +1,32 @@
 package com.rockstargames.gtasa.launcher.net;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Model representing SA-MP/open.mp server state returned from UDP query.
  */
 public class ServerInfo {
+
+    public static class PlayerEntry {
+        private final String name;
+        private final int score;
+        private final int ping;
+
+        public PlayerEntry(String name, int score, int ping) {
+            this.name = name;
+            this.score = score;
+            this.ping = ping;
+        }
+
+        public String getName() { return name; }
+        public int getScore() { return score; }
+        public int getPing() { return ping; }
+    }
+
     private final boolean online;
     private final String ip;
     private final int port;
@@ -13,6 +36,9 @@ public class ServerInfo {
     private final int maxPlayers;
     private final int pingMs;
     private final boolean passworded;
+
+    private Map<String, String> rules = new HashMap<>();
+    private List<PlayerEntry> playerList = new ArrayList<>();
 
     public ServerInfo(boolean online, String ip, int port, String hostname, String gamemode, int players, int maxPlayers, int pingMs, boolean passworded) {
         this.online = online;
@@ -42,6 +68,22 @@ public class ServerInfo {
 
     public String getAddress() {
         return ip + ":" + port;
+    }
+
+    public Map<String, String> getRules() {
+        return Collections.unmodifiableMap(rules);
+    }
+
+    public void setRules(Map<String, String> rules) {
+        this.rules = rules != null ? new HashMap<>(rules) : new HashMap<>();
+    }
+
+    public List<PlayerEntry> getPlayerList() {
+        return Collections.unmodifiableList(playerList);
+    }
+
+    public void setPlayerList(List<PlayerEntry> players) {
+        this.playerList = players != null ? new ArrayList<>(players) : new ArrayList<>();
     }
 }
 

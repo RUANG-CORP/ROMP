@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
@@ -40,6 +41,42 @@ public class CacheDownloader {
 
     public static boolean isDownloading() {
         return sIsDownloading;
+    }
+
+    /**
+     * Creates minimal placeholder game data assets for testing/offline use.
+     */
+    public static boolean createMockCache(File destDir) {
+        try {
+            if (!destDir.exists()) destDir.mkdirs();
+            File dataDir = new File(destDir, "data");
+            if (!dataDir.exists()) dataDir.mkdirs();
+            File gtaDat = new File(dataDir, "gta.dat");
+            if (!gtaDat.exists()) {
+                try (FileOutputStream fos = new FileOutputStream(gtaDat)) {
+                    fos.write("# GTA SA Data Configuration Placeholder\n".getBytes(StandardCharsets.UTF_8));
+                }
+            }
+
+            File texdbDir = new File(destDir, "texdb");
+            if (!texdbDir.exists()) texdbDir.mkdirs();
+            File gta3Img = new File(texdbDir, "gta3.img");
+            if (!gta3Img.exists()) {
+                try (FileOutputStream fos = new FileOutputStream(gta3Img)) {
+                    fos.write(new byte[1024]);
+                }
+            }
+            File gtaIntImg = new File(texdbDir, "gta_int.img");
+            if (!gtaIntImg.exists()) {
+                try (FileOutputStream fos = new FileOutputStream(gtaIntImg)) {
+                    fos.write(new byte[1024]);
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to create mock cache: " + e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -80,30 +117,48 @@ public class CacheDownloader {
                     destDir.mkdirs();
                 }
 
-                // 1. Download Phase
+                // 1. Download Phase with multi-hop redirect and User-Agent
                 Log.i(TAG, "Starting download from: " + sourceUrl);
                 URL url = new URL(sourceUrl);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setConnectTimeout(15000);
-                conn.setReadTimeout(30000);
-                conn.setInstanceFollowRedirects(true);
-                conn.connect();
+                int redirects = 0;
+                HttpURLConnection conn = null;
+                int responseCode = 0;
 
-                int responseCode = conn.getResponseCode();
-                // Handle redirection manually if needed
-                if (responseCode == HttpURLConnection.HTTP_MOVED_PERM || responseCode == HttpURLConnection.HTTP_MOVED_TEMP) {
-                    String newUrl = conn.getHeaderField("Location");
-                    conn.disconnect();
-                    url = new URL(newUrl);
+                while (redirects < 5) {
                     conn = (HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(15000);
+                    conn.setReadTimeout(30000);
+                    conn.setInstanceFollowRedirects(true);
+                    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                    conn.setRequestProperty("Accept", "*/*");
                     conn.connect();
+
                     responseCode = conn.getResponseCode();
+                    if (responseCode == HttpURLConnection.HTTP_MOVED_PERM 
+                            || responseCode == HttpURLConnection.HTTP_MOVED_TEMP 
+                            || responseCode == HttpURLConnection.HTTP_SEE_OTHER
+                            || responseCode == 307 
+                            || responseCode == 308) {
+                        String newLocation = conn.getHeaderField("Location");
+                        conn.disconnect();
+                        if (newLocation == null || newLocation.isEmpty()) {
+                            throw new Exception("HTTP redirect tanpa header Location.");
+                        }
+                        url = new URL(newLocation);
+                        redirects++;
+                    } else {
+                        break;
+                    }
                 }
 
                 if (responseCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                    throw new Exception("File cache tidak ditemukan di server (HTTP 404 Not Found). Silakan periksa URL unduhan di tab Pengaturan.");
+                    throw new Exception("File tidak ditemukan di server (HTTP 404). Silakan periksa URL unduhan di tab Pengaturan.");
+                } else if (responseCode == HttpURLConnection.HTTP_UNAVAILABLE) {
+                    throw new Exception("Server CDN sedang sibuk / membatasi akses (HTTP 503). Silakan coba lagi nanti atau gunakan tombol 'Pasang dari ZIP Lokal'.");
+                } else if (responseCode == HttpURLConnection.HTTP_FORBIDDEN) {
+                    throw new Exception("Akses server ditolak (HTTP 403 Forbidden). Tautan mungkin memerlukan izin login.");
                 } else if (responseCode != HttpURLConnection.HTTP_OK) {
-                    throw new Exception("HTTP server error code: " + responseCode);
+                    throw new Exception("Server mengembalikan kode: HTTP " + responseCode);
                 }
 
                 long totalBytes = conn.getContentLengthLong();

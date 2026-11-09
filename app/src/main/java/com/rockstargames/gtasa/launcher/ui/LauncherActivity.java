@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -25,8 +26,11 @@ import com.rockstargames.gtasa.launcher.data.CacheVerifier;
 import com.rockstargames.gtasa.launcher.data.ServerItem;
 import com.rockstargames.gtasa.launcher.data.ServerRepository;
 import com.rockstargames.gtasa.launcher.data.SettingsManager;
+import com.rockstargames.gtasa.launcher.net.SampQueryClient;
+import com.rockstargames.gtasa.launcher.net.ServerInfo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Universal Ad-Free SA-MP / open.mp Mobile Launcher.
@@ -53,6 +57,8 @@ public class LauncherActivity extends Activity {
     // Settings UI elements
     private EditText mEtNickname;
     private Spinner mSpinnerFps;
+    private CheckBox mCbFastChat;
+    private CheckBox mCbVoiceChat;
     private EditText mEtCacheUrl;
     private TextView mTvCacheStatus;
     private Button mBtnDownloadCache;
@@ -90,6 +96,8 @@ public class LauncherActivity extends Activity {
 
         mEtNickname = findViewById(R.id.et_nickname);
         mSpinnerFps = findViewById(R.id.spinner_fps);
+        mCbFastChat = findViewById(R.id.cb_fast_chat);
+        mCbVoiceChat = findViewById(R.id.cb_voice_chat);
         mEtCacheUrl = findViewById(R.id.et_cache_url);
         mTvCacheStatus = findViewById(R.id.tv_cache_status);
         mBtnDownloadCache = findViewById(R.id.btn_download_cache);
@@ -101,6 +109,19 @@ public class LauncherActivity extends Activity {
         mBtnDownloadCache.setOnClickListener(v -> startCacheDownload());
         mBtnInstallLocalZip.setOnClickListener(v -> promptInstallLocalZip());
         mBtnAddServer.setOnClickListener(v -> showAddServerDialog());
+
+        Button btnMockCache = findViewById(R.id.btn_mock_cache);
+        if (btnMockCache != null) {
+            btnMockCache.setOnClickListener(v -> {
+                boolean success = CacheDownloader.createMockCache(getExternalFilesDir(null));
+                if (success) {
+                    Toast.makeText(this, "Data game uji coba (offline) berhasil dibuat!", Toast.LENGTH_SHORT).show();
+                    refreshSettingsValues();
+                } else {
+                    Toast.makeText(this, "Gagal membuat data uji coba.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
 
         if (mEtSearch != null) {
             mEtSearch.addTextChangedListener(new android.text.TextWatcher() {
@@ -170,6 +191,11 @@ public class LauncherActivity extends Activity {
                 loadFavoritesList();
                 Toast.makeText(LauncherActivity.this, "Server dihapus dari Favorit", Toast.LENGTH_SHORT).show();
             }
+
+            @Override
+            public void onInspect(ServerItem server) {
+                showServerDetailsDialog(server);
+            }
         });
         mCurrentAdapter = adapter;
         mListViewServers.setAdapter(adapter);
@@ -189,6 +215,11 @@ public class LauncherActivity extends Activity {
             @Override
             public void onDelete(ServerItem server) {
                 // Not applicable for public tab
+            }
+
+            @Override
+            public void onInspect(ServerItem server) {
+                showServerDetailsDialog(server);
             }
         });
         mCurrentAdapter = adapter;
@@ -247,6 +278,86 @@ public class LauncherActivity extends Activity {
         dialog.show();
     }
 
+    private void showServerDetailsDialog(ServerItem server) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_server_details, null);
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+
+        TextView tvName = dialogView.findViewById(R.id.tv_details_name);
+        TextView tvAddress = dialogView.findViewById(R.id.tv_details_address);
+        TextView tvPing = dialogView.findViewById(R.id.tv_details_ping);
+        View viewStatus = dialogView.findViewById(R.id.view_details_status);
+        TextView tvGamemode = dialogView.findViewById(R.id.tv_details_gamemode);
+        TextView tvRules = dialogView.findViewById(R.id.tv_details_rules);
+        TextView tvPlayersTitle = dialogView.findViewById(R.id.tv_details_players_title);
+        TextView tvPlayersList = dialogView.findViewById(R.id.tv_details_players_list);
+        Button btnClose = dialogView.findViewById(R.id.btn_details_close);
+        Button btnConnect = dialogView.findViewById(R.id.btn_details_connect);
+
+        tvName.setText(server.getName() != null ? server.getName() : server.getAddress());
+        tvAddress.setText(server.getAddress());
+        tvPing.setText("Mengambil ping...");
+        viewStatus.setBackgroundColor(Color.parseColor("#94A3B8"));
+        tvGamemode.setText("Gamemode: Memuat...");
+        tvRules.setText("Rules: Menghubungi server via UDP...");
+        tvPlayersTitle.setText("Pemain Online (Memuat...)");
+        tvPlayersList.setText("Mengambil daftar pemain...");
+
+        btnClose.setOnClickListener(v -> dialog.dismiss());
+        btnConnect.setOnClickListener(v -> {
+            dialog.dismiss();
+            launchGameWithServer(server);
+        });
+
+        dialog.show();
+
+        // Query full UDP opcodes ('i', 'r', 'd')
+        SampQueryClient.queryServerDetails(server.getIp(), server.getPort(), info -> {
+            if (!dialog.isShowing()) return;
+            if (info != null && info.isOnline()) {
+                tvName.setText(info.getHostname());
+                tvPing.setText(info.getPingMs() + "ms");
+                viewStatus.setBackgroundColor(Color.parseColor("#10B981"));
+                tvGamemode.setText("Gamemode: " + info.getGamemode() + " | Sandi: " + (info.isPassworded() ? "Ya" : "Tidak"));
+
+                // Format rules
+                if (!info.getRules().isEmpty()) {
+                    StringBuilder sbRules = new StringBuilder();
+                    for (Map.Entry<String, String> entry : info.getRules().entrySet()) {
+                        sbRules.append(entry.getKey()).append("=").append(entry.getValue()).append("  |  ");
+                    }
+                    tvRules.setText(sbRules.toString());
+                } else {
+                    tvRules.setText("Rules: Tidak ada metadata rules.");
+                }
+
+                // Format players
+                tvPlayersTitle.setText("Pemain Online (" + info.getPlayers() + " / " + info.getMaxPlayers() + ")");
+                if (!info.getPlayerList().isEmpty()) {
+                    StringBuilder sbPlayers = new StringBuilder();
+                    for (ServerInfo.PlayerEntry p : info.getPlayerList()) {
+                        sbPlayers.append("• ").append(p.getName())
+                                 .append(" (Skor: ").append(p.getScore())
+                                 .append(" | Ping: ").append(p.getPing()).append("ms)\n");
+                    }
+                    tvPlayersList.setText(sbPlayers.toString().trim());
+                } else if (info.getPlayers() == 0) {
+                    tvPlayersList.setText("Tidak ada pemain di server saat ini.");
+                } else {
+                    tvPlayersList.setText("Server membatasi query daftar nama pemain.");
+                }
+            } else {
+                tvPing.setText("Offline");
+                viewStatus.setBackgroundColor(Color.parseColor("#EF4444"));
+                tvGamemode.setText("Gamemode: -");
+                tvRules.setText("Server tidak merespons paket query UDP.");
+                tvPlayersTitle.setText("Pemain Online (0 / 0)");
+                tvPlayersList.setText("Server sedang offline atau tidak dapat dijangkau.");
+            }
+        });
+    }
+
     private void setupSettingsView() {
         // Setup FPS Limit spinner
         String[] fpsOptions = {"30 FPS", "60 FPS", "90 FPS", "120 FPS"};
@@ -268,6 +379,13 @@ public class LauncherActivity extends Activity {
         else if (currentFps == 90) mSpinnerFps.setSelection(2);
         else if (currentFps == 120) mSpinnerFps.setSelection(3);
         else mSpinnerFps.setSelection(2); // default 90
+
+        if (mCbFastChat != null) {
+            mCbFastChat.setChecked(mSettings.isFastChat());
+        }
+        if (mCbVoiceChat != null) {
+            mCbVoiceChat.setChecked(mSettings.isVoiceChat());
+        }
 
         // Check Cache
         CacheVerifier.CacheStatus status = CacheVerifier.checkGameData(this);
@@ -295,10 +413,21 @@ public class LauncherActivity extends Activity {
         mBtnDownloadCache.setEnabled(false);
         mBtnDownloadCache.setText("Mengunduh...");
 
-        // CDN endpoint from saved settings
-        String cacheUrl = mSettings.getCacheUrl();
+        // CDN endpoint from saved settings or input field
+        String cacheUrl = (mEtCacheUrl != null && mEtCacheUrl.getText().length() > 0)
+                ? mEtCacheUrl.getText().toString().trim()
+                : mSettings.getCacheUrl();
+
         if (cacheUrl == null || cacheUrl.trim().isEmpty()) {
-            cacheUrl = "https://archive.org/download/gtasa-android-data/gtasa_cache.zip";
+            Toast.makeText(this, "Silakan masukkan direct link file ZIP di kolom 'URL CDN Data Cache'", Toast.LENGTH_LONG).show();
+            if (mEtCacheUrl != null) {
+                mEtCacheUrl.requestFocus();
+                mEtCacheUrl.setError("Masukkan direct link file ZIP");
+            }
+            mBtnDownloadCache.setEnabled(true);
+            mBtnDownloadCache.setText("DOWNLOAD DARI CDN");
+            mPbCacheDownload.setVisibility(View.GONE);
+            return;
         }
 
         CacheDownloader.downloadAndExtract(cacheUrl, getExternalFilesDir(null), new CacheDownloader.DownloadCallback() {
@@ -396,6 +525,13 @@ public class LauncherActivity extends Activity {
         else if (selectedFpsIndex == 2) fps = 90;
         else if (selectedFpsIndex == 3) fps = 120;
         mSettings.setFpsLimit(fps);
+
+        if (mCbFastChat != null) {
+            mSettings.setFastChat(mCbFastChat.isChecked());
+        }
+        if (mCbVoiceChat != null) {
+            mSettings.setVoiceChat(mCbVoiceChat.isChecked());
+        }
 
         if (mEtCacheUrl != null) {
             String url = mEtCacheUrl.getText().toString().trim();

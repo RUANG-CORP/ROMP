@@ -40,6 +40,119 @@ public class SampQueryClient {
         });
     }
 
+    /**
+     * Queries full server details: Information ('i'), Rules ('r'), and Players ('d'/'c').
+     */
+    public static void queryServerDetails(final String ip, final int port, final QueryCallback callback) {
+        sExecutor.execute(() -> {
+            ServerInfo result = executeFullDetailsQuery(ip, port);
+            sMainHandler.post(() -> {
+                if (callback != null) {
+                    callback.onResult(result);
+                }
+            });
+        });
+    }
+
+    private static byte[] buildPacket(byte[] ipOctets, int port, char opcode) {
+        ByteBuffer buffer = ByteBuffer.allocate(11);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.put("SAMP".getBytes(StandardCharsets.US_ASCII));
+        buffer.put(ipOctets);
+        buffer.putShort((short) port);
+        buffer.put((byte) opcode);
+        return buffer.array();
+    }
+
+    private static ServerInfo executeFullDetailsQuery(String ip, int port) {
+        ServerInfo info = executeQuery(ip, port);
+        if (!info.isOnline()) {
+            return info;
+        }
+
+        try (DatagramSocket socket = new DatagramSocket()) {
+            socket.setSoTimeout(1500);
+            InetAddress address = InetAddress.getByName(ip);
+            byte[] ipOctets = address.getAddress();
+
+            // 1. Query Rules (Opcode 'r')
+            try {
+                byte[] reqRules = buildPacket(ipOctets, port, 'r');
+                socket.send(new DatagramPacket(reqRules, reqRules.length, address, port));
+
+                byte[] recvRules = new byte[4096];
+                DatagramPacket packRules = new DatagramPacket(recvRules, recvRules.length);
+                socket.receive(packRules);
+
+                if (packRules.getLength() >= 13) {
+                    ByteBuffer rBuf = ByteBuffer.wrap(packRules.getData(), 0, packRules.getLength());
+                    rBuf.order(ByteOrder.LITTLE_ENDIAN);
+                    rBuf.position(11); // Skip SAMP header
+
+                    int ruleCount = rBuf.getShort() & 0xFFFF;
+                    java.util.Map<String, String> rulesMap = new java.util.HashMap<>();
+                    for (int i = 0; i < ruleCount && rBuf.remaining() > 2; i++) {
+                        int nLen = rBuf.get() & 0xFF;
+                        if (rBuf.remaining() < nLen) break;
+                        byte[] nBytes = new byte[nLen];
+                        rBuf.get(nBytes);
+                        String rName = new String(nBytes, StandardCharsets.ISO_8859_1);
+
+                        if (rBuf.remaining() < 1) break;
+                        int vLen = rBuf.get() & 0xFF;
+                        if (rBuf.remaining() < vLen) break;
+                        byte[] vBytes = new byte[vLen];
+                        rBuf.get(vBytes);
+                        String rVal = new String(vBytes, StandardCharsets.ISO_8859_1);
+
+                        rulesMap.put(rName, rVal);
+                    }
+                    info.setRules(rulesMap);
+                }
+            } catch (Exception e) {
+                Log.d(TAG, "Rules query error: " + e.getMessage());
+            }
+
+            // 2. Query Detailed Players (Opcode 'd')
+            try {
+                byte[] reqPlayers = buildPacket(ipOctets, port, 'd');
+                socket.send(new DatagramPacket(reqPlayers, reqPlayers.length, address, port));
+
+                byte[] recvPlayers = new byte[8192];
+                DatagramPacket packPlayers = new DatagramPacket(recvPlayers, recvPlayers.length);
+                socket.receive(packPlayers);
+
+                if (packPlayers.getLength() >= 13) {
+                    ByteBuffer pBuf = ByteBuffer.wrap(packPlayers.getData(), 0, packPlayers.getLength());
+                    pBuf.order(ByteOrder.LITTLE_ENDIAN);
+                    pBuf.position(11);
+
+                    int pCount = pBuf.getShort() & 0xFFFF;
+                    java.util.List<ServerInfo.PlayerEntry> playersList = new java.util.ArrayList<>();
+                    for (int i = 0; i < pCount && pBuf.remaining() > 2; i++) {
+                        pBuf.get(); // skip id
+                        int nameLen = pBuf.get() & 0xFF;
+                        if (pBuf.remaining() < nameLen + 8) break;
+                        byte[] nameBytes = new byte[nameLen];
+                        pBuf.get(nameBytes);
+                        String pName = new String(nameBytes, StandardCharsets.ISO_8859_1);
+                        int pScore = pBuf.getInt();
+                        int pPing = pBuf.getInt();
+                        playersList.add(new ServerInfo.PlayerEntry(pName, pScore, pPing));
+                    }
+                    info.setPlayerList(playersList);
+                }
+            } catch (Exception e) {
+                Log.d(TAG, "Detailed players query error: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            Log.d(TAG, "Full details query socket error: " + e.getMessage());
+        }
+
+        return info;
+    }
+
     private static ServerInfo executeQuery(String ip, int port) {
         long startTime = System.currentTimeMillis();
         try (DatagramSocket socket = new DatagramSocket()) {

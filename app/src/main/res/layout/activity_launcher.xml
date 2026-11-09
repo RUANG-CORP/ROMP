@@ -154,6 +154,24 @@
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
                     android:background="#1E293B"
+                    android:layout_marginBottom="14dp" />
+
+                <CheckBox
+                    android:id="@+id/cb_fast_chat"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Aktifkan Fast Chat (Samp)"
+                    android:textColor="#E2E8F0"
+                    android:textSize="13sp"
+                    android:layout_marginBottom="8dp" />
+
+                <CheckBox
+                    android:id="@+id/cb_voice_chat"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Aktifkan Voice Chat Audio (Plugin)"
+                    android:textColor="#E2E8F0"
+                    android:textSize="13sp"
                     android:layout_marginBottom="18dp" />
 
                 <TextView
@@ -227,6 +245,16 @@
                         android:textStyle="bold"
                         android:layout_marginStart="6dp" />
                 </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_mock_cache"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:text="⚡ BUAT DATA UJI COBA (OFFLINE INSTANT)"
+                    android:textColor="#CBD5E1"
+                    android:background="#334155"
+                    android:textSize="11sp"
+                    android:layout_marginBottom="14dp" />
 
                 <ProgressBar
                     android:id="@+id/pb_cache_download"

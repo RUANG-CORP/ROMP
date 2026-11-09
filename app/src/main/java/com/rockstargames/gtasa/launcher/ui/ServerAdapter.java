@@ -27,6 +27,7 @@ public class ServerAdapter extends BaseAdapter {
     public interface OnServerActionListener {
         void onConnect(ServerItem server);
         void onDelete(ServerItem server);
+        void onInspect(ServerItem server);
     }
 
     private final Context mContext;
@@ -116,6 +117,10 @@ public class ServerAdapter extends BaseAdapter {
 
         holder.btnConnect.setOnClickListener(v -> {
             if (mListener != null) mListener.onConnect(item);
+        });
+
+        convertView.setOnClickListener(v -> {
+            if (mListener != null) mListener.onInspect(item);
         });
 
         // Check if we have cached query info

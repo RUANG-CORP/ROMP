@@ -15,8 +15,9 @@ public class SettingsManager {
     private static final String KEY_NICKNAME = "player_nickname";
     private static final String KEY_FPS_LIMIT = "fps_limit";
     private static final String KEY_FAST_CHAT = "fast_chat";
+    private static final String KEY_VOICE_CHAT = "voice_chat";
     private static final String KEY_CACHE_URL = "cache_cdn_url";
-    private static final String DEFAULT_CACHE_URL = "https://archive.org/download/gtasa-android-data/gtasa_cache.zip";
+    private static final String DEFAULT_CACHE_URL = "";
 
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\[\\]\\$\\@\\.\\=\\?]{3,20}$");
 
@@ -55,6 +56,14 @@ public class SettingsManager {
         mPrefs.edit().putBoolean(KEY_FAST_CHAT, fastChat).apply();
     }
 
+    public boolean isVoiceChat() {
+        return mPrefs.getBoolean(KEY_VOICE_CHAT, true);
+    }
+
+    public void setVoiceChat(boolean voiceChat) {
+        mPrefs.edit().putBoolean(KEY_VOICE_CHAT, voiceChat).apply();
+    }
+
     public String getCacheUrl() {
         return mPrefs.getString(KEY_CACHE_URL, DEFAULT_CACHE_URL);
     }
@@ -81,6 +90,7 @@ public class SettingsManager {
                     "port = " + server.getPort() + "\n" +
                     "fps_limit = " + getFpsLimit() + "\n" +
                     "fast_chat = " + (isFastChat() ? 1 : 0) + "\n" +
+                    "voice_chat = " + (isVoiceChat() ? 1 : 0) + "\n" +
                     "cef_overlay = 1\n";
 
             try (FileWriter writer = new FileWriter(iniFile, false)) {
