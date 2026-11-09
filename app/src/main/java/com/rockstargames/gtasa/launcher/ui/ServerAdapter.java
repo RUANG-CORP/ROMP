@@ -144,12 +144,14 @@ public class ServerAdapter extends BaseAdapter {
 
     private void bindServerInfo(ViewHolder holder, ServerInfo info) {
         if (info != null && info.isOnline()) {
-            holder.dotStatus.setBackgroundColor(Color.parseColor("#10B981")); // Green
-            holder.tvName.setText(info.getHostname());
+            holder.dotStatus.setBackgroundResource(R.drawable.dot_online);
+            String rawHostname = info.getHostname();
+            String cleanName = rawHostname != null ? rawHostname.replaceAll("\\{[0-9a-fA-F]{6}\\}", "").trim() : "";
+            holder.tvName.setText(!cleanName.isEmpty() ? cleanName : rawHostname);
             holder.tvPing.setText(info.getPingMs() + "ms");
             holder.tvPlayers.setText(info.getPlayers() + " / " + info.getMaxPlayers());
         } else {
-            holder.dotStatus.setBackgroundColor(Color.parseColor("#EF4444")); // Red
+            holder.dotStatus.setBackgroundResource(R.drawable.dot_offline);
             holder.tvPing.setText("Offline");
             holder.tvPlayers.setText("0 / 0");
         }
