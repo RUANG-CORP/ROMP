@@ -16,8 +16,9 @@ public class SettingsManager {
     private static final String KEY_FPS_LIMIT = "fps_limit";
     private static final String KEY_FAST_CHAT = "fast_chat";
     private static final String KEY_VOICE_CHAT = "voice_chat";
+    public static final String OFFICIAL_RESA_CDN_MANIFEST = "https://resa-mp.com/api/game-files";
     private static final String KEY_CACHE_URL = "cache_cdn_url";
-    private static final String DEFAULT_CACHE_URL = "";
+    private static final String DEFAULT_CACHE_URL = OFFICIAL_RESA_CDN_MANIFEST;
 
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_\\[\\]\\$\\@\\.\\=\\?]{3,20}$");
 

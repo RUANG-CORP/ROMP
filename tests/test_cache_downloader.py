@@ -20,22 +20,40 @@ class TestCacheDownloader(unittest.TestCase):
         self.assertIn("onComplete", code)
         self.assertIn("onError", code)
 
-        # Must have download and extract methods
-        self.assertIn("downloadAndExtract", code)
-        self.assertIn("ZipInputStream", code)
+        # Must support ReSA CDN manifest and local sync
+        self.assertIn("downloadFromCdnOrZip", code)
+        self.assertIn("downloadManifestInternal", code)
+        self.assertIn("syncFromLocalDirectory", code)
+        self.assertIn("ManifestFileItem", code)
+        self.assertIn("AlynLauncher/20.5", code)
 
         # Must protect against Zip Slip vulnerability
         self.assertIn("getCanonicalPath", code)
 
-if __name__ == '__main__':
-    unittest.main()
     def test_zip_extraction_security(self):
         # Create a malicious zip simulating zip slip
         zip_buf = io.BytesIO()
         with zipfile.ZipFile(zip_buf, 'w') as zf:
             zf.writestr("../evil.txt", "exploit")
         
-        # Verify python zipfile detects or allows inspecting the slip entry
         with zipfile.ZipFile(zip_buf, 'r') as zf:
             names = zf.namelist()
             self.assertIn("../evil.txt", names)
+
+    def test_manifest_json_format_parsing(self):
+        # Verify JSON manifest parsing logic
+        import json
+        sample_json = '''{
+            "files": [
+                {"name": "SAMP.ide", "path": "SAMP/SAMP.ide", "size": "89358", "url": "https://resa-mp.com/game-files/SAMP/SAMP.ide"},
+                {"name": "game.bin", "path": "textures/game.bin", "size": "233890123", "url": "https://resa-mp.com/game-files/textures/game.bin"}
+            ]
+        }'''
+        parsed = json.loads(sample_json)
+        self.assertIn("files", parsed)
+        self.assertEqual(len(parsed["files"]), 2)
+        self.assertEqual(parsed["files"][0]["path"], "SAMP/SAMP.ide")
+        self.assertEqual(int(parsed["files"][0]["size"]), 89358)
+
+if __name__ == '__main__':
+    unittest.main()

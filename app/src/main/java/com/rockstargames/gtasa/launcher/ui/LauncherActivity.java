@@ -88,6 +88,7 @@ public class LauncherActivity extends Activity {
     private CheckBox mCbVoiceChat;
     private EditText mEtCacheUrl;
     private TextView mTvCacheStatus;
+    private Button mBtnSyncResa;
     private Button mBtnDownloadCache;
     private Button mBtnInstallLocalZip;
     private ProgressBar mPbCacheDownload;
@@ -157,12 +158,14 @@ public class LauncherActivity extends Activity {
         mCbVoiceChat = findViewById(R.id.cb_voice_chat);
         mEtCacheUrl = findViewById(R.id.et_cache_url);
         mTvCacheStatus = findViewById(R.id.tv_cache_status);
+        mBtnSyncResa = findViewById(R.id.btn_sync_resa);
         mBtnDownloadCache = findViewById(R.id.btn_download_cache);
         mBtnInstallLocalZip = findViewById(R.id.btn_install_local_zip);
         mPbCacheDownload = findViewById(R.id.pb_cache_download);
         mBtnSaveSettings = findViewById(R.id.btn_save_settings);
         mEtSearch = findViewById(R.id.et_search_servers);
 
+        if (mBtnSyncResa != null) mBtnSyncResa.setOnClickListener(v -> startResaLocalSync());
         if (mBtnDownloadCache != null) mBtnDownloadCache.setOnClickListener(v -> startCacheDownload());
         if (mBtnInstallLocalZip != null) mBtnInstallLocalZip.setOnClickListener(v -> promptInstallLocalZip());
         if (mBtnAddServer != null) mBtnAddServer.setOnClickListener(v -> showAddServerDialog());
@@ -664,17 +667,85 @@ public class LauncherActivity extends Activity {
 
         // Check Cache
         CacheVerifier.CacheStatus status = CacheVerifier.checkGameData(this);
+        java.io.File resaDir = CacheVerifier.findResaCacheDir();
         if (status.isComplete()) {
-            mTvCacheStatus.setText("Status: Lengkap (Game siap dimainkan)\nLokasi: " + status.getBaseDir().getAbsolutePath());
+            mTvCacheStatus.setText("Status: Lengkap (Game siap dimainkan)\n" + status.getMissingSummary() + "\nLokasi: " + status.getBaseDir().getAbsolutePath());
             mTvCacheStatus.setTextColor(Color.parseColor("#10B981"));
             mBtnDownloadCache.setText("GAME DATA LENGKAP (VERIFIKASI ULANG)");
             mBtnDownloadCache.setBackgroundColor(Color.parseColor("#334155"));
+            if (mBtnSyncResa != null) {
+                mBtnSyncResa.setText("TERPASANG (SINKRONKAN ULANG DARI RESA)");
+                mBtnSyncResa.setBackgroundColor(Color.parseColor("#334155"));
+            }
         } else {
             mTvCacheStatus.setText("Status: Cache belum lengkap\n" + status.getMissingSummary() + "\nLokasi target: " + status.getBaseDir().getAbsolutePath());
             mTvCacheStatus.setTextColor(Color.parseColor("#F59E0B"));
-            mBtnDownloadCache.setText("DOWNLOAD DARI CDN");
-            mBtnDownloadCache.setBackgroundColor(Color.parseColor("#10B981"));
+            mBtnDownloadCache.setText("🌐 UNDUH DARI CDN RESA:MP (766 MB)");
+            mBtnDownloadCache.setBackgroundColor(Color.parseColor("#0EA5E9"));
+            if (mBtnSyncResa != null) {
+                if (resaDir != null) {
+                    mBtnSyncResa.setVisibility(View.VISIBLE);
+                    mBtnSyncResa.setText("⚡ SINKRONKAN DARI RESA MULTIPLAYER (INSTAN LOKAL)");
+                    mBtnSyncResa.setBackgroundColor(Color.parseColor("#10B981"));
+                } else {
+                    mBtnSyncResa.setVisibility(View.GONE);
+                }
+            }
         }
+    }
+
+    private void startResaLocalSync() {
+        if (CacheDownloader.isDownloading()) {
+            Toast.makeText(this, "Operasi download/sinkronisasi sedang berjalan...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        java.io.File resaDir = CacheVerifier.findResaCacheDir();
+        if (resaDir == null) {
+            Toast.makeText(this, "Folder ReSA Multiplayer tidak ditemukan di penyimpanan perangkat.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        mPbCacheDownload.setVisibility(View.VISIBLE);
+        mPbCacheDownload.setProgress(0);
+        if (mBtnSyncResa != null) {
+            mBtnSyncResa.setEnabled(false);
+            mBtnSyncResa.setText("Menyalin berkas lokal...");
+        }
+        mBtnDownloadCache.setEnabled(false);
+
+        CacheDownloader.syncFromLocalDirectory(resaDir, getExternalFilesDir(null), new CacheDownloader.DownloadCallback() {
+            @Override
+            public void onProgress(int percent, long currentBytes, long totalBytes) {
+                mPbCacheDownload.setProgress(percent);
+                long mbCur = currentBytes / (1024 * 1024);
+                long mbTot = totalBytes / (1024 * 1024);
+                mTvCacheStatus.setText("Menyalin Berkas Lokal: " + percent + "% (" + mbCur + " MB / " + mbTot + " MB)");
+            }
+
+            @Override
+            public void onExtracting(String entryName) {
+                mTvCacheStatus.setText("Menyalin: " + entryName);
+            }
+
+            @Override
+            public void onComplete(java.io.File destinationDir) {
+                mPbCacheDownload.setVisibility(View.GONE);
+                if (mBtnSyncResa != null) mBtnSyncResa.setEnabled(true);
+                mBtnDownloadCache.setEnabled(true);
+                Toast.makeText(LauncherActivity.this, "Game data berhasil disinkronkan dari ReSA Multiplayer!", Toast.LENGTH_LONG).show();
+                refreshSettingsValues();
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                mPbCacheDownload.setVisibility(View.GONE);
+                if (mBtnSyncResa != null) mBtnSyncResa.setEnabled(true);
+                mBtnDownloadCache.setEnabled(true);
+                Toast.makeText(LauncherActivity.this, "Gagal sinkronisasi: " + errorMessage, Toast.LENGTH_LONG).show();
+                refreshSettingsValues();
+            }
+        });
     }
 
     private void startCacheDownload() {
@@ -694,36 +765,28 @@ public class LauncherActivity extends Activity {
                 : mSettings.getCacheUrl();
 
         if (cacheUrl == null || cacheUrl.trim().isEmpty()) {
-            Toast.makeText(this, "Silakan masukkan direct link file ZIP di kolom 'URL CDN Data Cache'", Toast.LENGTH_LONG).show();
-            if (mEtCacheUrl != null) {
-                mEtCacheUrl.requestFocus();
-                mEtCacheUrl.setError("Masukkan direct link file ZIP");
-            }
-            mBtnDownloadCache.setEnabled(true);
-            mBtnDownloadCache.setText("DOWNLOAD DARI CDN");
-            mPbCacheDownload.setVisibility(View.GONE);
-            return;
+            cacheUrl = SettingsManager.OFFICIAL_RESA_CDN_MANIFEST;
         }
 
-        CacheDownloader.downloadAndExtract(cacheUrl, getExternalFilesDir(null), new CacheDownloader.DownloadCallback() {
+        CacheDownloader.downloadFromCdnOrZip(cacheUrl, getExternalFilesDir(null), new CacheDownloader.DownloadCallback() {
             @Override
             public void onProgress(int percent, long downloadedBytes, long totalBytes) {
                 mPbCacheDownload.setProgress(percent);
                 long mbDownloaded = downloadedBytes / (1024 * 1024);
                 long mbTotal = totalBytes / (1024 * 1024);
-                mTvCacheStatus.setText("Mengunduh Cache: " + percent + "% (" + mbDownloaded + " MB / " + mbTotal + " MB)");
+                mTvCacheStatus.setText("Mengunduh Cache CDN: " + percent + "% (" + mbDownloaded + " MB / " + mbTotal + " MB)");
             }
 
             @Override
             public void onExtracting(String entryName) {
-                mTvCacheStatus.setText("Mengekstrak: " + entryName);
+                mTvCacheStatus.setText("Mengunduh: " + entryName);
             }
 
             @Override
             public void onComplete(java.io.File destinationDir) {
                 mPbCacheDownload.setVisibility(View.GONE);
                 mBtnDownloadCache.setEnabled(true);
-                Toast.makeText(LauncherActivity.this, "Game data berhasil diunduh dan dipasang!", Toast.LENGTH_LONG).show();
+                Toast.makeText(LauncherActivity.this, "Game data berhasil diunduh dari CDN!", Toast.LENGTH_LONG).show();
                 refreshSettingsValues();
             }
 
