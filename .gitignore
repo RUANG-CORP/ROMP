@@ -8,8 +8,36 @@ app/.cxx/
 app/build/
 __pycache__/
 *.pyc
-*.png
 window_dump.xml
 
+# Test screenshots (keep app assets & drawables)
+/*.png
+replica/*.png
+replica/screens/*.png
+
+# Built/pulled APKs, signatures & network captures
+*.apk
+*.idsig
+*.pcap
+
+# Reverse-engineering dumps, scratch binaries, and ad-hoc inspection scripts
+*.asm
+replica/*.so
+replica/*.dex
+replica/*.xml
+replica/screens/*.xml
+replica/*_disasm.txt
+replica/*_dexdump.txt
+replica/dex_list.txt
+replica/per_class/
+replica/test_out/
+replica/merged_engine/
+replica/merged_test/
 replica/target_apk/
+replica/*.py
+scripts/dump_*.py
+scripts/find_*.py
+scripts/inspect_*.py
+scripts/list_*.py
+scripts/parse_dump.py
 

@@ -1,14 +1,18 @@
 package com.rockstargames.gtasa.launcher.data;
 
+import android.app.ActivityManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Process;
 import android.util.Log;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class SettingsManager {
@@ -123,20 +127,26 @@ public class SettingsManager {
      */
     public boolean syncToNativeSettings(ServerItem server, File externalFilesDir) {
         if (server == null) return false;
-        boolean appSuccess = writeDirectoryConfig(externalFilesDir, server);
+        boolean appSuccess = writeDirectoryConfig(externalFilesDir, server, false);
 
         // Also sync to ReSA files directory if available
         File resaDir = findResaFilesDir();
         if (resaDir != null && !resaDir.equals(externalFilesDir)) {
-            writeDirectoryConfig(resaDir, server);
+            writeDirectoryConfig(resaDir, server, false);
         }
 
         return appSuccess;
     }
 
-    private boolean writeDirectoryConfig(File baseDir, ServerItem server) {
+    private boolean writeDirectoryConfig(File baseDir, ServerItem server, boolean offline) {
         if (baseDir == null || !baseDir.exists()) return false;
         try {
+            String serverIp = server != null ? server.getIp() : "127.0.0.1";
+            int serverPort = server != null ? server.getPort() : 7777;
+            String serverName = server != null
+                    ? (server.getName() != null ? server.getName() : server.getAddress())
+                    : "Offline";
+
             // 1. Write SAMP/settings.ini
             File sampDir = new File(baseDir, "SAMP");
             if (!sampDir.exists()) {
@@ -146,8 +156,8 @@ public class SettingsManager {
             File iniFile = new File(sampDir, "settings.ini");
             String iniContent = "[client]\n" +
                     "name = " + getNickname() + "\n" +
-                    "server = " + server.getIp() + "\n" +
-                    "port = " + server.getPort() + "\n" +
+                    "server = " + serverIp + "\n" +
+                    "port = " + serverPort + "\n" +
                     "fps_limit = " + getFpsLimit() + "\n" +
                     "fast_chat = " + (isFastChat() ? 1 : 0) + "\n" +
                     "voice_chat = " + (isVoiceChat() ? 1 : 0) + "\n" +
@@ -159,13 +169,12 @@ public class SettingsManager {
 
             // 2. Write client_settings.json (consumed by ReSA GameProcessPreferences.migrate)
             File jsonFile = new File(baseDir, "client_settings.json");
-            String serverName = server.getName() != null ? server.getName() : server.getAddress();
             String jsonContent = "{\n" +
                     "  \"nick_name\": \"" + getNickname() + "\",\n" +
-                    "  \"server_ip\": \"" + server.getIp() + "\",\n" +
-                    "  \"server_port\": " + server.getPort() + ",\n" +
+                    "  \"server_ip\": \"" + serverIp + "\",\n" +
+                    "  \"server_port\": " + serverPort + ",\n" +
                     "  \"server_password\": \"\",\n" +
-                    "  \"offline_mode\": false,\n" +
+                    "  \"offline_mode\": " + offline + ",\n" +
                     "  \"last_server_name\": \"" + serverName.replace("\"", "\\\"") + "\",\n" +
                     "  \"fps_limit\": " + getFpsLimit() + ",\n" +
                     "  \"fast_chat\": " + isFastChat() + ",\n" +
@@ -181,6 +190,131 @@ public class SettingsManager {
         } catch (Exception e) {
             Log.e(TAG, "Failed to write directory config: " + e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Synchronizes comprehensive game settings to both 'client_settings' and 'resa_samp' SharedPreferences.
+     */
+    public void syncSharedPreferences(Context context, ServerItem server, boolean offline) {
+        if (context == null) return;
+        String nickname = getNickname();
+        String serverIp = server != null ? server.getIp() : "127.0.0.1";
+        int serverPort = server != null ? server.getPort() : 7777;
+        String serverName = server != null ? (server.getName() != null ? server.getName() : server.getAddress()) : "Offline";
+        int fps = getFpsLimit();
+        boolean fastChat = isFastChat();
+        boolean voiceChat = isVoiceChat();
+
+        // 1. Write client_settings
+        SharedPreferences clientPrefs = context.getSharedPreferences("client_settings", Context.MODE_PRIVATE);
+        clientPrefs.edit()
+                .putString("nick_name", nickname)
+                .putString("server_ip", serverIp)
+                .putInt("server_port", serverPort)
+                .putString("server_password", "")
+                .putBoolean("offline_mode", offline)
+                .putString("last_server_name", serverName)
+                .putInt("fps_limit", fps)
+                .putBoolean("fast_chat", fastChat)
+                .putBoolean("voice_chat", voiceChat)
+                .commit();
+
+        // 2. Write resa_samp (directly consumed by native libalyn_resa.so)
+        SharedPreferences resaPrefs = context.getSharedPreferences("resa_samp", Context.MODE_PRIVATE);
+        resaPrefs.edit()
+                .putString("nick_name", nickname)
+                .putString("server_ip", serverIp)
+                .putInt("server_port", serverPort)
+                .putString("server_password", "")
+                .putBoolean("offline_mode", offline)
+                .putString("last_server_name", serverName)
+                .putInt("fps_limit", fps)
+                .putBoolean("fast_chat", fastChat)
+                .putBoolean("voice_chat", voiceChat)
+                .commit();
+
+        Log.i(TAG, "Synchronized SharedPreferences (offline=" + offline + ", server=" + serverIp + ":" + serverPort + ", nick=" + nickname + ")");
+    }
+
+    /**
+     * Directly launches the embedded 3D RenderWare SA-MP engine inside ROMP.
+     * Synchronizes server and player settings to external files dir and boots com.alyn.resa.Game.
+     */
+    public boolean launchEmbedded3dEngine(Context context, ServerItem server) {
+        if (context == null || server == null) return false;
+        return launchEmbedded3dGame(context, server, false);
+    }
+
+    /**
+     * Directly launches the embedded 3D RenderWare engine in single-player offline mode.
+     */
+    public boolean launchEmbedded3dEngineOffline(Context context) {
+        if (context == null) return false;
+        return launchEmbedded3dGame(context, null, true);
+    }
+
+    private boolean launchEmbedded3dGame(Context context, ServerItem server, boolean offline) {
+        try {
+            // Ensure previous :game process does not hold stale in-memory SharedPreferences across mode switches
+            killStaleGameProcess(context);
+
+            File baseDir = context.getExternalFilesDir(null);
+            if (baseDir != null) {
+                writeDirectoryConfig(baseDir, server, offline);
+                File marker = new File(baseDir, ".resa-data");
+                if (!marker.exists()) {
+                    marker.createNewFile();
+                }
+            }
+
+            syncSharedPreferences(context, server, offline);
+
+            String serverName = server != null
+                    ? (server.getName() != null ? server.getName() : server.getAddress())
+                    : "Offline";
+            long now = System.currentTimeMillis();
+            Intent intent = new Intent();
+            intent.setComponent(new ComponentName(context.getPackageName(), "com.alyn.resa.Game"));
+            intent.putExtra("extra_check", "alynsampmobile1337");
+            intent.putExtra("offline_mode", offline);
+            intent.putExtra("player_name", getNickname());
+            intent.putExtra("nick_name", getNickname());
+            if (server != null) {
+                intent.putExtra("server_ip", server.getIp());
+                intent.putExtra("server_port", server.getPort());
+                intent.putExtra("server_password", "");
+                intent.putExtra("server_name", serverName);
+                intent.putExtra("last_server_name", serverName);
+            }
+            intent.putExtra("alyn_session", "alyn_sess_" + now);
+            intent.putExtra("alyn_session_exp", now + 86400000L);
+            intent.putExtra("resa_game_process", String.valueOf(now));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            context.startActivity(intent);
+            Log.i(TAG, "Successfully launched embedded 3D engine (offline=" + offline + ", target=" + serverName + ")");
+            return true;
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to launch embedded 3D engine: " + e.getMessage(), e);
+            return false;
+        }
+    }
+
+    private static void killStaleGameProcess(Context context) {
+        try {
+            ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+            if (am == null) return;
+            String gameProcName = context.getPackageName() + ":game";
+            List<ActivityManager.RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+            if (procs == null) return;
+            for (ActivityManager.RunningAppProcessInfo proc : procs) {
+                if (gameProcName.equals(proc.processName) && proc.pid != Process.myPid()) {
+                    Log.i(TAG, "Terminating stale game process pid=" + proc.pid + " before relaunch");
+                    Process.killProcess(proc.pid);
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Could not clean stale game process: " + e.getMessage());
         }
     }
 

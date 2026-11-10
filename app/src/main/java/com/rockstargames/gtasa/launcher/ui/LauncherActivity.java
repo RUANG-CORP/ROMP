@@ -117,6 +117,7 @@ public class LauncherActivity extends Activity {
         setupNavigationRail();
         setupSubTabs();
         setupSettingsView();
+        refreshSettingsValues();
         setupDefaultServer();
         showHomeTab();
     }
@@ -411,6 +412,10 @@ public class LauncherActivity extends Activity {
         }
         if (mBtnPaneConnect != null) {
             mBtnPaneConnect.setOnClickListener(v -> launchGameWithServer(server));
+            mBtnPaneConnect.setOnLongClickListener(v -> {
+                showConnectionMethodDialog(server, mSettings.getNickname());
+                return true;
+            });
         }
 
         SampQueryClient.queryServerDetails(server.getIp(), server.getPort(), info -> {
@@ -950,13 +955,26 @@ public class LauncherActivity extends Activity {
     }
 
     private void launchOfflineGame() {
-        if (mSelectedServer != null) {
-            startGameActivity(mSelectedServer, mSettings.getNickname());
-        } else {
-            Intent intent = new Intent(this, GTASA.class);
-            intent.putExtra("player_name", mSettings.getNickname());
-            startActivity(intent);
-        }
+        new AlertDialog.Builder(this)
+            .setTitle("Pilih Mode Single Player")
+            .setItems(new CharSequence[] {
+                "🚀 Mesin 3D ROMP (Single Player Offline)\n   Jalankan GTA San Andreas Story Mode 3D",
+                "🎮 ROMP Client CEF (Offline Test)"
+            }, (dialog, which) -> {
+                if (which == 0) {
+                    mSettings.launchEmbedded3dEngineOffline(this);
+                } else {
+                    if (mSelectedServer != null) {
+                        startGameActivity(mSelectedServer, mSettings.getNickname());
+                    } else {
+                        Intent intent = new Intent(this, GTASA.class);
+                        intent.putExtra("player_name", mSettings.getNickname());
+                        startActivity(intent);
+                    }
+                }
+            })
+            .setNegativeButton("Batal", null)
+            .show();
     }
 
     private void launchGameWithServer(ServerItem server) {
@@ -1000,26 +1018,24 @@ public class LauncherActivity extends Activity {
     }
 
     private void handleConnectionEngineChoice(ServerItem server, String nickname) {
-        if (SettingsManager.isResaInstalled(this)) {
-            showConnectionMethodDialog(server, nickname);
-        } else {
-            startGameActivity(server, nickname);
-        }
+        String serverName = server.getName() != null ? server.getName() : server.getAddress();
+        Toast.makeText(this, "Menghubungkan ke " + serverName + " via Mesin 3D ROMP...", Toast.LENGTH_SHORT).show();
+        mSettings.launchEmbedded3dEngine(this, server);
     }
 
     private void showConnectionMethodDialog(ServerItem server, String nickname) {
         String serverName = server.getName() != null ? server.getName() : server.getAddress();
         CharSequence[] options = new CharSequence[] {
-            "🚀 Mesin 3D ReSA:MP (Gameplay 3D Penuh)\n   Menjalankan game GTA San Andreas 3D langsung di server",
-            "🎮 ROMP Client Mandiri (CEF Mobile)\n   Menjalankan client in-game dengan overlay CEF & live scoreboard"
+            "🚀 Mesin 3D ROMP (Gameplay 3D Mandiri)\n   Menjalankan mesin RenderWare 3D mandiri langsung di server",
+            "🎮 ROMP Client CEF (In-Game Overlay)\n   Menjalankan client in-game dengan overlay CEF & live scoreboard"
         };
 
         new AlertDialog.Builder(this)
             .setTitle("Pilih Mode Gameplay · " + serverName)
             .setItems(options, (dialog, which) -> {
                 if (which == 0) {
-                    Toast.makeText(this, "Menghubungkan ke " + serverName + " via Mesin 3D GTA SA...", Toast.LENGTH_SHORT).show();
-                    SettingsManager.launchResaGame(this, server);
+                    Toast.makeText(this, "Menghubungkan ke " + serverName + " via Mesin 3D ROMP...", Toast.LENGTH_SHORT).show();
+                    mSettings.launchEmbedded3dEngine(this, server);
                 } else {
                     startGameActivity(server, nickname);
                 }
