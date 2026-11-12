@@ -100,7 +100,7 @@ jobs:
           keyAlias=romp
           keyPassword=${EPHEMERAL_PASS}
           EOF
-            echo "::warning::RELEASE_KEYSTORE_BASE64 secret not set; generated an ephemeral signing key for this CI run."
+            echo "Info: RELEASE_KEYSTORE_BASE64 secret not set; generated an ephemeral signing key for this CI run."
           fi
 
       - name: Build Android Release APK via Gradle
@@ -194,11 +194,12 @@ jobs:
 
       - name: Publish GitHub Release
         if: |
-          github.event_name != 'pull_request' &&
-          (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.create_release))
+          github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' && inputs.create_release)
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: ROMP by HARFA ${{ steps.version.outputs.tag }}
           draft: false
           prerelease: false
