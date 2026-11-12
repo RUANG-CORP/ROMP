@@ -134,15 +134,23 @@ jobs:
       - name: Package & sign slim ARM64 and universal Phone Release APKs
         shell: bash
         run: |
+          set +o pipefail
           TAG="${{ steps.version.outputs.tag }}"
-          python scripts/package_3d_engine.py \
-            --variant release \
-            --abis arm64-v8a \
-            --out "dist/ROMP-by-HARFA-${TAG}-arm64-v8a-release.apk"
-          python scripts/package_3d_engine.py \
-            --variant release \
-            --abis arm64-v8a,armeabi-v7a \
-            --out "dist/ROMP-by-HARFA-${TAG}-release.apk"
+          ls -la app/build/outputs/apk/release/ keystore.properties romp-release.jks replica/engine_dex/ || true
+          if ! (
+            python scripts/package_3d_engine.py \
+              --variant release \
+              --abis arm64-v8a \
+              --out "dist/ROMP-by-HARFA-${TAG}-arm64-v8a-release.apk" && \
+            python scripts/package_3d_engine.py \
+              --variant release \
+              --abis arm64-v8a,armeabi-v7a \
+              --out "dist/ROMP-by-HARFA-${TAG}-release.apk"
+          ) 2>&1 | tee package_apk.log; then
+            ERR_SUMMARY=$(tail -n 20 package_apk.log | tr '\n' ' ')
+            echo "::error::Package failed: ${ERR_SUMMARY}"
+            exit 1
+          fi
 
       - name: Verify APK signatures, zipalign, & SHA-256 checksums
         shell: bash
