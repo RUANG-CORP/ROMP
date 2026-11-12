@@ -47,20 +47,22 @@ jobs:
       - name: Install Android SDK Build-Tools 34, CMake 3.22.1 & NDK 25.1
         shell: bash
         run: |
-          set +o pipefail
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           if [ ! -w "$SDK_ROOT" ]; then
             sudo chmod -R a+rwX "$SDK_ROOT"
           fi
-          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
-          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;android-34" \
-            "build-tools;34.0.0" \
-            "cmake;3.22.1" \
-            "ndk;25.1.8937393"
-          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          (
+            set +o pipefail
+            yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+              "platforms;android-34" \
+              "build-tools;34.0.0" \
+              "cmake;3.22.1" \
+              "ndk;25.1.8937393" >/dev/null
+            yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          )
 
       - name: Run parity & integrity unit tests
         run: python -m unittest discover -s tests -v
@@ -106,14 +108,15 @@ jobs:
       - name: Build Android Release APK via Gradle
         shell: bash
         run: |
-          set +o pipefail
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
-          if ! ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle_build.log; then
+          if ! ./gradlew assembleRelease --no-daemon --stacktrace > gradle_build.log 2>&1; then
+            cat gradle_build.log
             ERR_SUMMARY=$(grep -A4 -E "FAILURE:|What went wrong:|Execution failed" gradle_build.log | head -n 30 | tr '\n' ' ')
             echo "::error::${ERR_SUMMARY}"
             exit 1
           fi
+          tail -n 30 gradle_build.log
 
       - name: Resolve release version label
         id: version
@@ -134,10 +137,9 @@ jobs:
       - name: Package & sign slim ARM64 and universal Phone Release APKs
         shell: bash
         run: |
-          set +o pipefail
           TAG="${{ steps.version.outputs.tag }}"
           ls -la app/build/outputs/apk/release/ keystore.properties romp-release.jks replica/engine_dex/ || true
-          if ! (
+          if ! {
             python scripts/package_3d_engine.py \
               --variant release \
               --abis arm64-v8a \
@@ -145,26 +147,29 @@ jobs:
             python scripts/package_3d_engine.py \
               --variant release \
               --abis arm64-v8a,armeabi-v7a \
-              --out "dist/ROMP-by-HARFA-${TAG}-release.apk"
-          ) 2>&1 | tee package_apk.log; then
-            ERR_SUMMARY=$(tail -n 20 package_apk.log | tr '\n' ' ')
+              --out "dist/ROMP-by-HARFA-${TAG}-release.apk";
+          } > package_apk.log 2>&1; then
+            cat package_apk.log
+            ERR_SUMMARY=$(tail -n 25 package_apk.log | tr '\n' ' ')
             echo "::error::Package failed: ${ERR_SUMMARY}"
             exit 1
           fi
+          cat package_apk.log
 
       - name: Verify APK signatures, zipalign, & SHA-256 checksums
         shell: bash
         run: |
-          set +o pipefail
-          if ! python - <<'PY' 2>&1 | tee verify_apks.log
+          if ! python - <<'PY' > verify_apks.log 2>&1
           import glob, hashlib, os, subprocess, sys
           sys.path.insert(0, '.')
           from scripts.package_3d_engine import resolve_build_tool
 
+          apks = sorted(glob.glob('dist/*.apk'))
+          assert apks, f"No APK files found in dist/ (cwd={os.getcwd()})"
           zipalign = resolve_build_tool('zipalign')
           apksigner = resolve_build_tool('apksigner')
           sums = []
-          for apk in sorted(glob.glob('dist/*.apk')):
+          for apk in apks:
               print(f'=== Verifying {apk} ===')
               subprocess.check_call([zipalign, '-c', '-p', '4', apk])
               subprocess.check_call([apksigner, 'verify', '--verbose', '--print-certs', apk])
@@ -178,10 +183,12 @@ jobs:
           print('\n'.join(sums))
           PY
           then
-            ERR_SUMMARY=$(tail -n 20 verify_apks.log | tr '\n' ' ')
+            cat verify_apks.log
+            ERR_SUMMARY=$(tail -n 25 verify_apks.log | tr '\n' ' ')
             echo "::error::Verify failed: ${ERR_SUMMARY}"
             exit 1
           fi
+          cat verify_apks.log
 
       - name: Upload Release APKs as Workflow Artifacts
         uses: actions/upload-artifact@v4
