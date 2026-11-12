@@ -44,17 +44,19 @@ jobs:
       - name: Setup Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Install Android SDK Build-Tools 34 & CMake 3.22.1
+      - name: Install Android SDK Build-Tools 34, CMake 3.22.1 & NDK 25.1
         shell: bash
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
-          "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-34" \
             "build-tools;34.0.0" \
-            "cmake;3.22.1"
+            "cmake;3.22.1" \
+            "ndk;25.1.8937393" >/dev/null
+          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
 
       - name: Run parity & integrity unit tests
         run: python -m unittest discover -s tests -v
@@ -102,7 +104,7 @@ jobs:
         run: |
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Resolve release version label
         id: version
