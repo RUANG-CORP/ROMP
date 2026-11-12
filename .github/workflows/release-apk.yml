@@ -47,15 +47,19 @@ jobs:
       - name: Install Android SDK Build-Tools 34, CMake 3.22.1 & NDK 25.1
         shell: bash
         run: |
+          set +o pipefail
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          if [ ! -w "$SDK_ROOT" ]; then
+            sudo chmod -R a+rwX "$SDK_ROOT"
+          fi
           yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
             "platforms;android-34" \
             "build-tools;34.0.0" \
             "cmake;3.22.1" \
-            "ndk;25.1.8937393" >/dev/null
+            "ndk;25.1.8937393"
           yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
 
       - name: Run parity & integrity unit tests
@@ -102,9 +106,14 @@ jobs:
       - name: Build Android Release APK via Gradle
         shell: bash
         run: |
+          set +o pipefail
           sed -i 's/\r$//' gradlew
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          if ! ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle_build.log; then
+            ERR_SUMMARY=$(grep -A4 -E "FAILURE:|What went wrong:|Execution failed" gradle_build.log | head -n 30 | tr '\n' ' ')
+            echo "::error::${ERR_SUMMARY}"
+            exit 1
+          fi
 
       - name: Resolve release version label
         id: version
