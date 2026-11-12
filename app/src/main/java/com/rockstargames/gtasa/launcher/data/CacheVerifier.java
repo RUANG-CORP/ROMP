@@ -82,10 +82,9 @@ public class CacheVerifier {
 
         List<String> missing = new ArrayList<>();
 
-        // 1. Data configuration check (either data/gta.dat or SAMP/gta.dat)
+        // 1. Core data configuration check (libalyn_resa.so requires readable data/gta.dat on startup)
         File gtaDat = new File(filesDir, "data/gta.dat");
-        File sampGtaDat = new File(filesDir, "SAMP/gta.dat");
-        if (!gtaDat.exists() && !sampGtaDat.exists()) {
+        if (!gtaDat.exists() || !gtaDat.canRead()) {
             missing.add("data/gta.dat");
         }
 
@@ -97,8 +96,10 @@ public class CacheVerifier {
         File legacyGta3 = new File(filesDir, "texdb/gta3.img");
         File legacyGtaInt = new File(filesDir, "texdb/gta_int.img");
 
-        boolean hasModernTextures = modernGameBin.exists() || modernGameImg.exists();
-        boolean hasLegacyTextures = legacyGta3.exists() || legacyGtaInt.exists();
+        boolean hasModernTextures = (modernGameBin.exists() && modernGameBin.canRead())
+                || (modernGameImg.exists() && modernGameImg.canRead());
+        boolean hasLegacyTextures = (legacyGta3.exists() && legacyGta3.canRead())
+                || (legacyGtaInt.exists() && legacyGtaInt.canRead());
 
         if (!hasModernTextures && !hasLegacyTextures) {
             missing.add("textures/game.bin (atau texdb/gta3.img)");

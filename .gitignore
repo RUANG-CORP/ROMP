@@ -15,10 +15,14 @@ window_dump.xml
 replica/*.png
 replica/screens/*.png
 
-# Built/pulled APKs, signatures & network captures
+# Built/pulled APKs, signatures, keystores & release bundles
 *.apk
 *.idsig
 *.pcap
+*.jks
+*.keystore
+keystore.properties
+dist/
 
 # Reverse-engineering dumps, scratch binaries, and ad-hoc inspection scripts
 *.asm

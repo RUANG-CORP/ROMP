@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 4dp / 8dp Rhythm Spacing Scale -->
+    <dimen name="romp_space_xs">4dp</dimen>
+    <dimen name="romp_space_sm">8dp</dimen>
+    <dimen name="romp_space_md">12dp</dimen>
+    <dimen name="romp_space_lg">16dp</dimen>
+    <dimen name="romp_space_xl">24dp</dimen>
+
+    <!-- Corner Radii -->
+    <dimen name="romp_radius_sm">8dp</dimen>
+    <dimen name="romp_radius_md">12dp</dimen>
+    <dimen name="romp_radius_lg">16dp</dimen>
+    <dimen name="romp_radius_pill">999dp</dimen>
+
+    <!-- Touch Targets (Android >= 48dp primary / 44dp compact pill) -->
+    <dimen name="romp_touch_target">48dp</dimen>
+    <dimen name="romp_button_primary_h">50dp</dimen>
+    <dimen name="romp_button_secondary_h">44dp</dimen>
+    <dimen name="romp_input_h">48dp</dimen>
+
+    <!-- Consistent Icon Scale -->
+    <dimen name="romp_icon_sm">16dp</dimen>
+    <dimen name="romp_icon_md">20dp</dimen>
+    <dimen name="romp_icon_lg">24dp</dimen>
+</resources>
+

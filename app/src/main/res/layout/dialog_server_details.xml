@@ -6,20 +6,18 @@
     android:background="@drawable/bg_dialog_modern"
     android:padding="20dp">
 
-    <!-- Header: Server Name -->
     <TextView
         android:id="@+id/tv_details_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Server Hostname"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/romp_text_primary"
         android:textSize="18sp"
         android:textStyle="bold"
         android:singleLine="true"
         android:ellipsize="end"
-        android:layout_marginBottom="4dp" />
+        android:layout_marginBottom="6dp" />
 
-    <!-- Address & Ping / Status Badge Row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -32,7 +30,8 @@
             android:layout_width="10dp"
             android:layout_height="10dp"
             android:background="@drawable/dot_online"
-            android:layout_marginEnd="8dp" />
+            android:layout_marginEnd="8dp"
+            android:importantForAccessibility="no" />
 
         <TextView
             android:id="@+id/tv_details_address"
@@ -40,7 +39,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="127.0.0.1:7777"
-            android:textColor="#94A3B8"
+            android:textColor="@color/romp_text_secondary"
             android:textSize="13sp" />
 
         <TextView
@@ -48,17 +47,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="35ms"
-            android:textColor="#38BDF8"
+            android:textColor="@color/romp_accent"
             android:textSize="12sp"
             android:textStyle="bold"
             android:background="@drawable/bg_badge_ping"
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
-            android:paddingTop="3dp"
-            android:paddingBottom="3dp" />
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp" />
     </LinearLayout>
 
-    <!-- Info Grid / Overview Section -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -72,7 +70,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Gamemode: Roleplay"
-            android:textColor="#E2E8F0"
+            android:textColor="@color/romp_text_primary"
             android:textSize="13sp"
             android:textStyle="bold"
             android:layout_marginBottom="4dp" />
@@ -81,19 +79,18 @@
             android:id="@+id/tv_details_rules"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Rules: lagcomp=On | version=0.3.7 | weather=10"
-            android:textColor="#94A3B8"
-            android:textSize="11sp"
-            android:lineSpacingExtra="2dp" />
+            android:text="Rules: lagcomp=On | version=0.3.7"
+            android:textColor="@color/romp_text_muted"
+            android:textSize="12sp"
+            android:lineSpacingExtra="3dp" />
     </LinearLayout>
 
-    <!-- Players Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:layout_marginBottom="6dp">
+        android:layout_marginBottom="8dp">
 
         <TextView
             android:id="@+id/tv_details_players_title"
@@ -101,7 +98,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Pemain Online (Memuat...)"
-            android:textColor="#F8FAFC"
+            android:textColor="@color/romp_text_primary"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -109,17 +106,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="LIVE QUERY"
-            android:textColor="#10B981"
-            android:textSize="10sp"
+            android:textColor="@color/romp_success"
+            android:textSize="11sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Players List Container -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="120dp"
         android:background="@drawable/bg_input_field"
-        android:padding="10dp"
+        android:padding="12dp"
         android:layout_marginBottom="16dp">
 
         <TextView
@@ -127,12 +123,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Memuat daftar pemain..."
-            android:textColor="#CBD5E1"
-            android:textSize="11sp"
+            android:textColor="@color/romp_text_secondary"
+            android:textSize="12sp"
             android:lineSpacingExtra="4dp" />
     </ScrollView>
 
-    <!-- Actions -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -141,23 +136,28 @@
         <Button
             android:id="@+id/btn_details_close"
             android:layout_width="0dp"
-            android:layout_height="42dp"
+            android:layout_height="46dp"
             android:layout_weight="1"
-            android:text="TUTUP"
-            android:textColor="#CBD5E1"
+            android:text="Tutup"
+            android:textAllCaps="false"
+            android:textColor="@color/romp_text_secondary"
             android:background="@drawable/bg_btn_secondary"
-            android:textSize="12sp"
+            android:textSize="13sp"
+            android:textStyle="bold"
             android:layout_marginEnd="10dp" />
 
         <Button
             android:id="@+id/btn_details_connect"
             android:layout_width="0dp"
-            android:layout_height="42dp"
-            android:layout_weight="1"
-            android:text="▶ GABUNG KE SERVER"
+            android:layout_height="46dp"
+            android:layout_weight="1.4"
+            android:text="Gabung Server"
+            android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:background="@drawable/bg_btn_connect"
-            android:textSize="12sp"
+            android:drawableStart="@drawable/ic_romp_play"
+            android:drawablePadding="8dp"
+            android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
 

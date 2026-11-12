@@ -53,7 +53,7 @@ public class GTASA extends Activity {
     // Server params
     private String mServerIp = "18.142.244.146";
     private int mServerPort = 7777;
-    private String mPlayerName = "Player_Valleta";
+    private String mPlayerName = "Player_HARFA";
     private String mServerName = "RUANG ROLEPLAY";
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -64,6 +64,7 @@ public class GTASA extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_overlay);
+        mPlayerName = new SettingsManager(this).getNickname();
 
         // Read extras
         Intent intent = getIntent();

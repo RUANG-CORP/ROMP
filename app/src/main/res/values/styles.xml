@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="RompLauncherTheme" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+        <item name="android:colorPrimary">@color/romp_accent_dark</item>
+        <item name="android:colorPrimaryDark">@color/romp_bg_canvas</item>
+        <item name="android:colorAccent">@color/romp_accent</item>
+        <item name="android:windowBackground">@color/romp_bg_canvas</item>
+        <item name="android:textColorPrimary">@color/romp_text_primary</item>
+        <item name="android:textColorSecondary">@color/romp_text_secondary</item>
+        <item name="android:textColorHint">@color/romp_text_muted</item>
+        <item name="android:colorControlActivated">@color/romp_accent</item>
+        <item name="android:colorControlNormal">@color/romp_text_muted</item>
+        <item name="android:alertDialogTheme">@style/RompAlertDialogTheme</item>
+    </style>
+
+    <style name="RompAlertDialogTheme" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">@color/romp_accent</item>
+        <item name="android:textColorPrimary">@color/romp_text_primary</item>
+        <item name="android:textColorSecondary">@color/romp_text_secondary</item>
+        <item name="android:windowBackground">@drawable/bg_dialog_modern</item>
+    </style>
+</resources>
+

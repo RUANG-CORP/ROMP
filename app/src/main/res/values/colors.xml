@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- UI/UX Pro Max Design System Tokens: ROMP by HARFA Glass Dark OLED -->
+    <color name="romp_bg_canvas">#070B14</color>
+    <color name="romp_bg_rail">#EB0A101D</color>
+    <color name="romp_bg_header">#EB0B1221</color>
+    <color name="romp_bg_surface">#DB111A2C</color>
+    <color name="romp_bg_surface_elevated">#E8162238</color>
+    <color name="romp_bg_input">#090F1C</color>
+
+    <color name="romp_border_subtle">#263652</color>
+    <color name="romp_border_strong">#3B4F73</color>
+    <color name="romp_divider">#1B283E</color>
+
+    <!-- Accessible Dark Mode Foreground Hierarchy (WCAG >= 4.5:1) -->
+    <color name="romp_text_primary">#F8FAFC</color>
+    <color name="romp_text_secondary">#CBD5E1</color>
+    <color name="romp_text_muted">#94A3B8</color>
+
+    <!-- Accent & Semantic Roles -->
+    <color name="romp_accent">#38BDF8</color>
+    <color name="romp_accent_dark">#0284C7</color>
+    <color name="romp_accent_soft">#2238BDF8</color>
+    <color name="romp_success">#22C55E</color>
+    <color name="romp_success_surface">#2422C55E</color>
+    <color name="romp_warning">#FBBF24</color>
+    <color name="romp_warning_surface">#26FBBF24</color>
+    <color name="romp_danger">#F87171</color>
+    <color name="romp_danger_surface">#3B141A</color>
+    <color name="romp_danger_border">#7F1D1D</color>
+    <color name="romp_icon_bg">#0B1628</color>
+</resources>
+
