@@ -155,14 +155,33 @@ jobs:
       - name: Verify APK signatures, zipalign, & SHA-256 checksums
         shell: bash
         run: |
-          SDK_ROOT="${ANDROID_HOME}"
-          BT_DIR="$SDK_ROOT/build-tools/34.0.0"
-          for apk in dist/*.apk; do
-            echo "=== Verifying $apk ==="
-            "$BT_DIR/zipalign" -c -p 4 "$apk"
-            "$BT_DIR/apksigner" verify --verbose --print-certs "$apk"
-          done
-          (cd dist && sha256sum *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          set +o pipefail
+          if ! python - <<'PY' 2>&1 | tee verify_apks.log
+          import glob, hashlib, os, subprocess, sys
+          sys.path.insert(0, '.')
+          from scripts.package_3d_engine import resolve_build_tool
+
+          zipalign = resolve_build_tool('zipalign')
+          apksigner = resolve_build_tool('apksigner')
+          sums = []
+          for apk in sorted(glob.glob('dist/*.apk')):
+              print(f'=== Verifying {apk} ===')
+              subprocess.check_call([zipalign, '-c', '-p', '4', apk])
+              subprocess.check_call([apksigner, 'verify', '--verbose', '--print-certs', apk])
+              h = hashlib.sha256()
+              with open(apk, 'rb') as f:
+                  for chunk in iter(lambda: f.read(1048576), b''):
+                      h.update(chunk)
+              sums.append(f'{h.hexdigest()}  {os.path.basename(apk)}')
+          with open('dist/SHA256SUMS.txt', 'w', encoding='utf-8') as out:
+              out.write('\n'.join(sums) + '\n')
+          print('\n'.join(sums))
+          PY
+          then
+            ERR_SUMMARY=$(tail -n 20 verify_apks.log | tr '\n' ' ')
+            echo "::error::Verify failed: ${ERR_SUMMARY}"
+            exit 1
+          fi
 
       - name: Upload Release APKs as Workflow Artifacts
         uses: actions/upload-artifact@v4
